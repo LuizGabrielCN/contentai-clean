@@ -4,13 +4,21 @@ from app.services.ai_service import ai_service
 # Criar Blueprint para organizar rotas
 main_bp = Blueprint('main', __name__)
 
-@main_bp.route('/api/health', methods=['GET'])
+@main_bp.route('/api/health')
 def health_check():
     return jsonify({
         "status": "healthy", 
-        "message": "✅ API está funcionando perfeitamente!",
-        "service": "contentai-api",
+        "message": "✅ HelpubliAI está funcionando perfeitamente!",
+        "service": "helpubli-ai",
         "ai_provider": "google-gemini"
+    })
+
+@main_bp.route('/')
+def index():
+    return jsonify({
+        "message": "Bem-vindo ao HelpubliAI API", 
+        "status": "success",
+        "version": "1.0.0"
     })
 
 @main_bp.route('/api/generate-ideas', methods=['POST'])

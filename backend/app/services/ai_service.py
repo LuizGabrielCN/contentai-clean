@@ -7,7 +7,7 @@ load_dotenv()
 
 class AIService:
     def __init__(self):
-        print("🔄 Inicializando serviço de IA...")
+        print("🔄 Inicializando HelpubliAI Service...")
         
         # Obter chave API do ambiente
         self.api_key = os.environ.get('GEMINI_API_KEY')
