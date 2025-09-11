@@ -2,23 +2,26 @@ import os
 from flask import Flask, send_from_directory
 from app import create_app
 
-app = create_app()
-
-# Configurações de caminho
+# Configurações
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_FOLDER = os.path.join(BASE_DIR, 'frontend')
 
-# ✅ Apenas UMA função para todas as rotas frontend
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve_frontend(path):
-    # Serve arquivos estáticos se existirem
-    if path and os.path.exists(os.path.join(FRONTEND_FOLDER, path)):
-        return send_from_directory(FRONTEND_FOLDER, path)
-    # Serve index.html para todas outras rotas
+app = create_app()
+
+# ✅ Rota para servir o frontend na raiz
+@app.route('/')
+def serve_index():
     return send_from_directory(FRONTEND_FOLDER, 'index.html')
+
+# ✅ Rota para arquivos estáticos (CSS, JS, etc)
+@app.route('/<path:path>')
+def serve_static(path):
+    if os.path.exists(os.path.join(FRONTEND_FOLDER, path)):
+        return send_from_directory(FRONTEND_FOLDER, path)
+    return 'Arquivo não encontrado', 404
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV', 'production') == 'development'
     print(f"🚀 Iniciando HelpubliAI na porta {port}")
-    app.run(debug=False, port=port, host='0.0.0.0')
+    app.run(debug=debug, port=port, host='0.0.0.0')
