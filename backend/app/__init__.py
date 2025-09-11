@@ -21,6 +21,14 @@ def create_app():
         "http://localhost:8000",
         "http://127.0.0.1:8000"
     ])
+
+    @app.route('/')
+    def serve_index():
+        from flask import send_from_directory
+        import os
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        FRONTEND_FOLDER = os.path.join(BASE_DIR, 'frontend')
+        return send_from_directory(FRONTEND_FOLDER, 'index.html')
     
     # Registrar blueprints (rotas)
     from app.routes import main_bp

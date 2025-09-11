@@ -13,14 +13,6 @@ def health_check():
         "ai_provider": "google-gemini"
     })
 
-@main_bp.route('/')
-def index():
-    return jsonify({
-        "message": "Bem-vindo ao HelpubliAI API", 
-        "status": "success",
-        "version": "1.0.0"
-    })
-
 @main_bp.route('/api/generate-ideas', methods=['POST'])
 def generate_ideas():
     try:

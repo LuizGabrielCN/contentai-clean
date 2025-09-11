@@ -8,27 +8,17 @@ FRONTEND_FOLDER = os.path.join(BASE_DIR, 'frontend')
 
 app = create_app()
 
-# ⚠️ Rota para API - deve vir antes
-@app.route('/api/health')
-def health_check():
-    from flask import jsonify
-    return jsonify({
-        "status": "healthy", 
-        "message": "✅ HelpubliAI está funcionando perfeitamente!",
-        "service": "helpubli-ai"
-    })
-
-# ⚠️ Rota principal serve o frontend
+# ✅ Rota principal - SEMPRE serve o frontend
 @app.route('/')
 def serve_index():
     return send_from_directory(FRONTEND_FOLDER, 'index.html')
 
-# ⚠️ Rotas estáticas para assets (CSS, JS, etc)
+# ✅ Rotas estáticas (CSS, JS, etc)
 @app.route('/<path:path>')
 def serve_static(path):
     if os.path.exists(os.path.join(FRONTEND_FOLDER, path)):
         return send_from_directory(FRONTEND_FOLDER, path)
-    # Fallback para index.html (para React Router/Vue Router)
+    # Fallback para index.html
     return send_from_directory(FRONTEND_FOLDER, 'index.html')
 
 if __name__ == '__main__':
