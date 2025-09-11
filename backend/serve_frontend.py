@@ -8,17 +8,13 @@ FRONTEND_FOLDER = os.path.join(BASE_DIR, 'frontend')
 
 app = create_app()
 
-# ✅ Rota principal - SEMPRE serve o frontend
-@app.route('/')
-def serve_index():
-    return send_from_directory(FRONTEND_FOLDER, 'index.html')
-
-# ✅ Rotas estáticas (CSS, JS, etc)
+# ✅ Apenas UMA rota para servir o frontend
+@app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_static(path):
-    if os.path.exists(os.path.join(FRONTEND_FOLDER, path)):
+    if path and os.path.exists(os.path.join(FRONTEND_FOLDER, path)):
         return send_from_directory(FRONTEND_FOLDER, path)
-    # Fallback para index.html
+    # Serve index.html para qualquer rota não encontrada
     return send_from_directory(FRONTEND_FOLDER, 'index.html')
 
 if __name__ == '__main__':
