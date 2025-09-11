@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ContentAI - Criação de Conteúdo com IA</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Carregando ContentAI...</p>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <span class="logo-icon">🚀</span>
+                <h1>ContentAI</h1>
+            </div>
+            <nav class="nav">
+                <a href="#gerador-ideias" class="nav-link active">Gerar Ideias</a>
+                <a href="#criar-roteiros" class="nav-link">Criar Roteiros</a>
+                <a href="#historico" class="nav-link">Histórico</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Welcome Section -->
+            <section class="welcome-section">
+                <div class="welcome-content">
+                    <h2>Crie Conteúdo Viral com IA</h2>
+                    <p>Gere ideias e roteiros perfeitos para TikTok, Instagram Reels e YouTube Shorts</p>
+                </div>
+            </section>
+
+            <!-- Generator Sections -->
+            <div class="tabs">
+                <!-- Tab 1: Gerador de Ideias -->
+                <section id="gerador-ideias" class="tab-content active">
+                    <div class="card">
+                        <h3>💡 Gerar Ideias de Conteúdo</h3>
+                        <div class="form-group">
+                            <label for="niche">Nicho/Assunto:</label>
+                            <input type="text" id="niche" placeholder="Ex: humor, tecnologia, fitness..." value="humor">
+                        </div>
+                        <div class="form-group">
+                            <label for="audience">Público-Alvo:</label>
+                            <input type="text" id="audience" placeholder="Ex: jovens, adultos, gamers..." value="jovens">
+                        </div>
+                        <div class="form-group">
+                            <label for="count">Quantidade de Ideias:</label>
+                            <select id="count">
+                                <option value="3">3 ideias</option>
+                                <option value="5" selected>5 ideias</option>
+                                <option value="10">10 ideias</option>
+                            </select>
+                        </div>
+                        <button id="generate-ideas-btn" class="btn btn-primary">
+                            <span class="btn-text">Gerar Ideias</span>
+                            <span class="btn-loading" style="display: none;">Gerando...</span>
+                        </button>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div id="ideas-results" class="results-section" style="display: none;">
+                        <h4>💡 Ideias Geradas</h4>
+                        <div class="results-grid" id="ideas-grid">
+                            <!-- Ideias serão inseridas aqui via JavaScript -->
+                        </div>
+                        <div class="results-actions">
+                            <button id="export-ideas" class="btn btn-secondary">Exportar Ideias</button>
+                            <button id="clear-ideas" class="btn btn-outline">Limpar</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tab 2: Criar Roteiros -->
+                <section id="criar-roteiros" class="tab-content">
+                    <div class="card">
+                        <h3>📝 Criar Roteiro Completo</h3>
+                        <div class="form-group">
+                            <label for="script-idea">Ideia para o Roteiro:</label>
+                            <textarea id="script-idea" rows="3" placeholder="Cole uma ideia aqui ou selecione das ideias geradas..."></textarea>
+                        </div>
+                        <button id="generate-script-btn" class="btn btn-primary">
+                            <span class="btn-text">Criar Roteiro</span>
+                            <span class="btn-loading" style="display: none;">Criando...</span>
+                        </button>
+                    </div>
+
+                    <!-- Script Results -->
+                    <div id="script-results" class="results-section" style="display: none;">
+                        <h4>🎬 Roteiro Gerado</h4>
+                        <div class="script-output" id="script-output">
+                            <!-- Roteiro será inserido aqui -->
+                        </div>
+                        <div class="results-actions">
+                            <button id="copy-script" class="btn btn-secondary">Copiar Roteiro</button>
+                            <button id="save-script" class="btn btn-outline">Salvar</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Tab 3: Histórico -->
+                <section id="historico" class="tab-content">
+                    <div class="card">
+                        <h3>📊 Histórico de Gerações</h3>
+                        <div id="history-content">
+                            <p class="empty-state">Nenhuma geração realizada ainda.</p>
+                            <div id="history-list"></div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 ContentAI - Desenvolvido com ❤️ e IA</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notifications -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>

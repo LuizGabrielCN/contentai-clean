@@ -1,0 +1,6 @@
+{
+  "deploy": {
+    "startCommand": "cd backend && python serve_frontend.py",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
