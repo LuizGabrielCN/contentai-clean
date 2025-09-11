@@ -1,0 +1,1 @@
+web: cd backend && python serve_frontend.py
