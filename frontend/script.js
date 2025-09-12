@@ -21,8 +21,17 @@ function initializeApp() {
     // Configurar event listeners
     setupEventListeners();
     
+    // Configurar tracking
+    setupButtonTracking();
+    setupErrorTracking();
+    
     // Carregar histórico do localStorage
     loadHistory();
+    
+    // Trackear página carregada
+    trackEvent('page', 'page_view', 'homepage');
+    
+    console.log('✅ HelpubliAI initialized with analytics');
 }
 
 function setupTabs() {
@@ -473,3 +482,162 @@ document.addEventListener('DOMContentLoaded', function() {
         trackEvent('ui', 'button_click', 'generate_script');
     });
 });
+
+// ======================
+// FUNÇÕES DE TRACKING
+// ======================
+
+function trackEvent(category, action, label = '', value = null) {
+    if (typeof gtag !== 'undefined') {
+        const eventParams = {
+            'event_category': category,
+            'event_label': label
+        };
+        
+        if (value !== null) {
+            eventParams['value'] = value;
+        }
+        
+        gtag('event', action, eventParams);
+        console.log('📊 Event tracked:', category, action, label);
+    }
+}
+
+// ======================
+// TRACKING DE GERACAO DE IDEIAS
+// ======================
+
+async function generateIdeas() {
+    const niche = document.getElementById('niche').value.trim();
+    const audience = document.getElementById('audience').value.trim();
+    const count = document.getElementById('count').value;
+    
+    // Trackear início da geração
+    trackEvent('generation', 'ideas_generate_start', `niche:${niche}, audience:${audience}`);
+    
+    try {
+        const response = await fetch('/api/generate-ideas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ niche, audience, count: parseInt(count) })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Trackear sucesso
+            trackEvent('generation', 'ideas_generated', `niche:${niche}, count:${data.ideas.length}`, data.ideas.length);
+            displayIdeas(data.ideas);
+        } else {
+            // Trackear erro
+            trackEvent('error', 'ideas_generation_failed', data.error || 'Unknown error');
+        }
+        
+    } catch (error) {
+        trackEvent('error', 'ideas_generation_error', error.message);
+    }
+}
+
+// ======================
+// TRACKING DE GERACAO DE ROTEIROS
+// ======================
+
+async function generateScript() {
+    const idea = document.getElementById('script-idea').value.trim();
+    
+    // Trackear início
+    trackEvent('generation', 'script_generate_start', `idea:${idea.substring(0, 30)}`);
+    
+    try {
+        const response = await fetch('/api/generate-script', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ idea })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Trackear sucesso
+            trackEvent('generation', 'script_generated', `idea:${idea.substring(0, 30)}`, data.script.length);
+            displayScript(data.script);
+        } else {
+            // Trackear erro
+            trackEvent('error', 'script_generation_failed', data.error || 'Unknown error');
+        }
+        
+    } catch (error) {
+        trackEvent('error', 'script_generation_error', error.message);
+    }
+}
+
+// ======================
+// TRACKING DE BOTÕES E INTERAÇÕES
+// ======================
+
+function setupButtonTracking() {
+    // Trackear botão de gerar ideias
+    document.getElementById('generate-ideas-btn').addEventListener('click', function() {
+        trackEvent('ui', 'button_click', 'generate_ideas_button');
+    });
+    
+    // Trackear botão de gerar roteiro
+    document.getElementById('generate-script-btn').addEventListener('click', function() {
+        trackEvent('ui', 'button_click', 'generate_script_button');
+    });
+    
+    // Trackear botões de exportação
+    document.getElementById('export-ideas').addEventListener('click', function() {
+        trackEvent('ui', 'button_click', 'export_ideas_button');
+    });
+    
+    document.getElementById('copy-script').addEventListener('click', function() {
+        trackEvent('ui', 'button_click', 'copy_script_button');
+    });
+    
+    document.getElementById('save-script').addEventListener('click', function() {
+        trackEvent('ui', 'button_click', 'save_script_button');
+    });
+    
+    // Trackear navegação por tabs
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            const tabName = this.getAttribute('href').substring(1);
+            trackEvent('navigation', 'tab_switch', tabName);
+        });
+    });
+}
+
+// ======================
+// TRACKING DE ERROS
+// ======================
+
+function setupErrorTracking() {
+    // Trackear erros globais do JavaScript
+    window.addEventListener('error', function(e) {
+        trackEvent('error', 'global_error', e.message);
+    });
+    
+    // Trackear erros de promises não tratadas
+    window.addEventListener('unhandledrejection', function(e) {
+        trackEvent('error', 'promise_error', e.reason.message || e.reason);
+    });
+}
+
+// ======================
+// INICIALIZAÇÃO DO TRACKING
+// ======================
+
+function initializeApp() {
+    // ... código existente ...
+    
+    // Inicializar tracking
+    setupButtonTracking();
+    setupErrorTracking();
+    
+    // Trackear página carregada
+    trackEvent('page', 'page_view', window.location.pathname);
+    
+    console.log('✅ Analytics tracking initialized');
+}
