@@ -440,3 +440,36 @@ ${hashtagKeywords}
 
 // Funções globais para uso nos botões HTML
 window.useIdeaForScript = useIdeaForScript;
+
+// Função para trackear eventos
+function trackEvent(category, action, label) {
+    if (typeof gtag !== 'undefined') {
+        gtag('event', action, {
+            'event_category': category,
+            'event_label': label
+        });
+    }
+}
+
+// Trackear geração de ideias
+async function generateIdeas() {
+    // ... código existente ...
+    trackEvent('generation', 'ideas_generated', `niche:${niche}, count:${count}`);
+}
+
+// Trackear geração de roteiros  
+async function generateScript() {
+    // ... código existente ...
+    trackEvent('generation', 'script_generated', `idea:${idea.substring(0,50)}`);
+}
+
+// Trackear clicks nos botões
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('generate-ideas-btn').addEventListener('click', function() {
+        trackEvent('ui', 'button_click', 'generate_ideas');
+    });
+    
+    document.getElementById('generate-script-btn').addEventListener('click', function() {
+        trackEvent('ui', 'button_click', 'generate_script');
+    });
+});
