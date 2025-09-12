@@ -68,3 +68,31 @@ bash
 curl -X POST https://contentai-clean-production.up.railway.app/api/generate-ideas \
   -H "Content-Type: application/json" \
   -d '{"niche":"humor","audience":"jovens","count":3}'
+
+🤝 Contribuição
+
+Contribuições são bem-vindas! Sinta-se à vontade para:
+
+    Fork o projeto
+
+    Criar um branch para sua feature
+
+    Commit suas mudanças
+
+    Push para o branch
+
+    Abrir um Pull Request
+
+📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo LICENSE para detalhes.
+👨‍💻 Autor
+
+Luiz Gabriel - GitHub
+🙏 Agradecimentos
+
+    Google Gemini API pela tecnologia de IA
+
+    Railway pelo deploy gratuito
+
+    Comunidade Python/Flask
