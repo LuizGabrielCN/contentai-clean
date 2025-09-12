@@ -23,3 +23,48 @@ Gerador de ideias e roteiros virais para redes sociais usando Inteligência Arti
 **Teste a API:**
 ```bash
 curl https://contentai-clean-production.up.railway.app/api/health
+
+🛠️ Tecnologias
+
+    Backend: Python, Flask, Google Gemini API
+
+    Frontend: HTML5, CSS3, JavaScript Vanilla
+
+    Deploy: Railway, GitHub Actions
+
+    IA: Google Generative AI
+
+📦 Instalação Local
+bash
+
+# Clone o repositório
+git clone https://github.com/LuizGabrielCN/contentai-clean.git
+
+# Entre na pasta
+cd contentai-clean/backend
+
+# Instale dependências
+pip install -r requirements.txt
+
+# Execute
+python serve_frontend.py
+
+# Acesse: http://localhost:5000
+
+🔌 API Endpoints
+
+    GET /api/health - Status do serviço
+
+    POST /api/generate-ideas - Gerar ideias de conteúdo
+
+    POST /api/generate-script - Gerar roteiros completos
+
+    POST /api/feedback - Enviar feedback
+
+🎯 Exemplo de Uso
+bash
+
+# Gerar ideias
+curl -X POST https://contentai-clean-production.up.railway.app/api/generate-ideas \
+  -H "Content-Type: application/json" \
+  -d '{"niche":"humor","audience":"jovens","count":3}'
