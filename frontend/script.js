@@ -74,7 +74,10 @@ function setupEventListeners() {
     document.getElementById('save-script').addEventListener('click', saveScript);
 }
 
-// Funções da API
+// ======================
+// FUNÇÕES DA API (ÚNICAS)
+// ======================
+
 async function generateIdeas() {
     const niche = document.getElementById('niche').value.trim();
     const audience = document.getElementById('audience').value.trim();
@@ -85,6 +88,9 @@ async function generateIdeas() {
         showToast('Por favor, preencha todos os campos', 'error');
         return;
     }
+    
+    // Trackear início da geração
+    trackEvent('generation', 'ideas_generate_start', `niche:${niche}, audience:${audience}`);
     
     // Mostrar loading no botão
     const btn = document.getElementById('generate-ideas-btn');
@@ -107,15 +113,20 @@ async function generateIdeas() {
         const data = await response.json();
         
         if (response.ok) {
+            // Trackear sucesso
+            trackEvent('generation', 'ideas_generated', `niche:${niche}, count:${data.ideas.length}`, data.ideas.length);
             displayIdeas(data.ideas);
             saveToHistory('ideas', { niche, audience, ideas: data.ideas });
             showToast(`${data.ideas.length} ideias geradas com sucesso!`, 'success');
         } else {
+            // Trackear erro
+            trackEvent('error', 'ideas_generation_failed', data.error || 'Unknown error');
             throw new Error(data.error || 'Erro ao gerar ideias');
         }
         
     } catch (error) {
         console.error('Erro:', error);
+        trackEvent('error', 'ideas_generation_error', error.message);
         showToast(error.message, 'error');
         
         // Fallback: mostrar ideias de exemplo
@@ -135,6 +146,9 @@ async function generateScript() {
         showToast('Por favor, insira uma ideia', 'error');
         return;
     }
+    
+    // Trackear início
+    trackEvent('generation', 'script_generate_start', `idea:${idea.substring(0, 30)}`);
     
     // Mostrar loading no botão
     const btn = document.getElementById('generate-script-btn');
@@ -157,15 +171,20 @@ async function generateScript() {
         const data = await response.json();
         
         if (response.ok) {
+            // Trackear sucesso
+            trackEvent('generation', 'script_generated', `idea:${idea.substring(0, 30)}`, data.script.length);
             displayScript(data.script);
             saveToHistory('script', { idea, script: data.script });
             showToast('Roteiro gerado com sucesso!', 'success');
         } else {
+            // Trackear erro
+            trackEvent('error', 'script_generation_failed', data.error || 'Unknown error');
             throw new Error(data.error || 'Erro ao gerar roteiro');
         }
         
     } catch (error) {
         console.error('Erro:', error);
+        trackEvent('error', 'script_generation_error', error.message);
         showToast(error.message, 'error');
         
         // Fallback: mostrar roteiro de exemplo
@@ -178,7 +197,10 @@ async function generateScript() {
     }
 }
 
-// Funções de exibição
+// ======================
+// FUNÇÕES DE EXIBIÇÃO (mantidas intactas)
+// ======================
+
 function displayIdeas(ideas) {
     const ideasGrid = document.getElementById('ideas-grid');
     const resultsSection = document.getElementById('ideas-results');
@@ -219,7 +241,10 @@ function displayScript(script) {
     resultsSection.style.display = 'block';
 }
 
-// Funções de utilidade
+// ======================
+// FUNÇÕES DE UTILIDADE (mantidas intactas)
+// ======================
+
 function useIdeaForScript(idea) {
     document.getElementById('script-idea').value = idea;
     
@@ -231,6 +256,7 @@ function useIdeaForScript(idea) {
     document.getElementById('criar-roteiros').classList.add('active');
     
     currentTab = 'criar-roteiros';
+    trackEvent('navigation', 'idea_used_for_script', idea.substring(0, 30));
     showToast('Ideia copiada para o criador de roteiros!', 'success');
 }
 
@@ -251,6 +277,7 @@ function exportIdeas() {
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
     
+    trackEvent('export', 'ideas_exported', `count:${ideas.length}`);
     showToast('Ideias exportadas com sucesso!', 'success');
 }
 
@@ -258,6 +285,7 @@ function clearIdeas() {
     if (confirm('Tem certeza que deseja limpar todas as ideias geradas?')) {
         document.getElementById('ideas-grid').innerHTML = '';
         document.getElementById('ideas-results').style.display = 'none';
+        trackEvent('ui', 'ideas_cleared');
         showToast('Ideias limpas!', 'success');
     }
 }
@@ -267,8 +295,10 @@ async function copyScript() {
     
     try {
         await navigator.clipboard.writeText(script);
+        trackEvent('export', 'script_copied');
         showToast('Roteiro copiado para a área de transferência!', 'success');
     } catch (error) {
+        trackEvent('error', 'copy_failed', error.message);
         showToast('Erro ao copiar roteiro', 'error');
     }
 }
@@ -286,10 +316,14 @@ function saveScript() {
     link.click();
     
     URL.revokeObjectURL(url);
+    trackEvent('export', 'script_saved', `idea:${idea.substring(0, 30)}`);
     showToast('Roteiro salvo com sucesso!', 'success');
 }
 
-// Histórico e LocalStorage
+// ======================
+// HISTÓRICO E LOCALSTORAGE (mantidas intactas)
+// ======================
+
 function saveToHistory(type, data) {
     const history = JSON.parse(localStorage.getItem('contentai_history') || '[]');
     
@@ -346,7 +380,10 @@ function loadHistory() {
     });
 }
 
-// Toast notifications
+// ======================
+// TOAST NOTIFICATIONS (mantidas intactas)
+// ======================
+
 function showToast(message, type = 'success') {
     const toast = document.getElementById('toast');
     toast.textContent = message;
@@ -357,7 +394,10 @@ function showToast(message, type = 'success') {
     }, 3000);
 }
 
-// Fallbacks para quando a API não está disponível
+// ======================
+// FALLBACKS (mantidas intactas)
+// ======================
+
 function getFallbackIdeas(niche, audience, count) {
     const ideas = [
         {
@@ -447,44 +487,14 @@ ${hashtagKeywords}
 `;
 }
 
-// Funções globais para uso nos botões HTML
+// ======================
+// FUNÇÕES GLOBAIS
+// ======================
+
 window.useIdeaForScript = useIdeaForScript;
 
-// Função para trackear eventos
-function trackEvent(category, action, label) {
-    if (typeof gtag !== 'undefined') {
-        gtag('event', action, {
-            'event_category': category,
-            'event_label': label
-        });
-    }
-}
-
-// Trackear geração de ideias
-async function generateIdeas() {
-    // ... código existente ...
-    trackEvent('generation', 'ideas_generated', `niche:${niche}, count:${count}`);
-}
-
-// Trackear geração de roteiros  
-async function generateScript() {
-    // ... código existente ...
-    trackEvent('generation', 'script_generated', `idea:${idea.substring(0,50)}`);
-}
-
-// Trackear clicks nos botões
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('generate-ideas-btn').addEventListener('click', function() {
-        trackEvent('ui', 'button_click', 'generate_ideas');
-    });
-    
-    document.getElementById('generate-script-btn').addEventListener('click', function() {
-        trackEvent('ui', 'button_click', 'generate_script');
-    });
-});
-
 // ======================
-// FUNÇÕES DE TRACKING
+// FUNÇÕES DE TRACKING (ÚNICAS)
 // ======================
 
 function trackEvent(category, action, label = '', value = null) {
@@ -502,78 +512,6 @@ function trackEvent(category, action, label = '', value = null) {
         console.log('📊 Event tracked:', category, action, label);
     }
 }
-
-// ======================
-// TRACKING DE GERACAO DE IDEIAS
-// ======================
-
-async function generateIdeas() {
-    const niche = document.getElementById('niche').value.trim();
-    const audience = document.getElementById('audience').value.trim();
-    const count = document.getElementById('count').value;
-    
-    // Trackear início da geração
-    trackEvent('generation', 'ideas_generate_start', `niche:${niche}, audience:${audience}`);
-    
-    try {
-        const response = await fetch('/api/generate-ideas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ niche, audience, count: parseInt(count) })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            // Trackear sucesso
-            trackEvent('generation', 'ideas_generated', `niche:${niche}, count:${data.ideas.length}`, data.ideas.length);
-            displayIdeas(data.ideas);
-        } else {
-            // Trackear erro
-            trackEvent('error', 'ideas_generation_failed', data.error || 'Unknown error');
-        }
-        
-    } catch (error) {
-        trackEvent('error', 'ideas_generation_error', error.message);
-    }
-}
-
-// ======================
-// TRACKING DE GERACAO DE ROTEIROS
-// ======================
-
-async function generateScript() {
-    const idea = document.getElementById('script-idea').value.trim();
-    
-    // Trackear início
-    trackEvent('generation', 'script_generate_start', `idea:${idea.substring(0, 30)}`);
-    
-    try {
-        const response = await fetch('/api/generate-script', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idea })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            // Trackear sucesso
-            trackEvent('generation', 'script_generated', `idea:${idea.substring(0, 30)}`, data.script.length);
-            displayScript(data.script);
-        } else {
-            // Trackear erro
-            trackEvent('error', 'script_generation_failed', data.error || 'Unknown error');
-        }
-        
-    } catch (error) {
-        trackEvent('error', 'script_generation_error', error.message);
-    }
-}
-
-// ======================
-// TRACKING DE BOTÕES E INTERAÇÕES
-// ======================
 
 function setupButtonTracking() {
     // Trackear botão de gerar ideias
@@ -609,10 +547,6 @@ function setupButtonTracking() {
     });
 }
 
-// ======================
-// TRACKING DE ERROS
-// ======================
-
 function setupErrorTracking() {
     // Trackear erros globais do JavaScript
     window.addEventListener('error', function(e) {
@@ -623,21 +557,4 @@ function setupErrorTracking() {
     window.addEventListener('unhandledrejection', function(e) {
         trackEvent('error', 'promise_error', e.reason.message || e.reason);
     });
-}
-
-// ======================
-// INICIALIZAÇÃO DO TRACKING
-// ======================
-
-function initializeApp() {
-    // ... código existente ...
-    
-    // Inicializar tracking
-    setupButtonTracking();
-    setupErrorTracking();
-    
-    // Trackear página carregada
-    trackEvent('page', 'page_view', window.location.pathname);
-    
-    console.log('✅ Analytics tracking initialized');
 }
