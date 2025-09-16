@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify
 from app.services.ai_service import ai_service
 
-# Criar Blueprint para organizar rotas
 main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/api/health')
@@ -10,7 +9,8 @@ def health_check():
         "status": "healthy", 
         "message": "✅ HelpubliAI está funcionando perfeitamente!",
         "service": "helpubli-ai",
-        "ai_provider": "google-gemini"
+        "ai_provider": "google-gemini",
+        "ai_configured": not ai_service.fallback_mode
     })
 
 @main_bp.route('/api/generate-ideas', methods=['POST'])
@@ -32,7 +32,8 @@ def generate_ideas():
             "audience": audience,
             "count": len(ideas),
             "ideas": ideas,
-            "status": "success"
+            "status": "success",
+            "ai_generated": not ai_service.fallback_mode
         })
         
     except Exception as e:
@@ -52,10 +53,31 @@ def generate_script():
         return jsonify({
             "idea": idea,
             "script": script,
-            "status": "success"
+            "status": "success",
+            "ai_generated": not ai_service.fallback_mode
         })
         
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
 
-# Adicione outras rotas se necessário
+@main_bp.route('/api/feedback', methods=['POST'])
+def api_feedback():
+    try:
+        data = request.get_json()
+        
+        if not data or 'message' not in data:
+            return jsonify({"error": "Mensagem não fornecida"}), 400
+        
+        message = data['message']
+        
+        # Simular salvamento do feedback
+        print(f"📝 Feedback recebido: {message}")
+        
+        return jsonify({
+            "status": "success",
+            "message": "Feedback recebido com sucesso!",
+            "received_message": message
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
