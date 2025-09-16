@@ -37,6 +37,16 @@
                 <a href="#criar-roteiros" class="nav-link">Criar Roteiros</a>
                 <a href="#historico" class="nav-link">Histórico</a>
             </nav>
+            <!-- ✅ ADICIONE ESTA SEÇÃO DE AUTENTICAÇÃO -->
+            <div class="auth-section" id="auth-section">
+                <button id="login-btn" class="btn btn-outline">Entrar</button>
+               <button id="register-btn" class="btn btn-primary">Criar Conta</button>
+            </div>
+        
+            <div class="user-section" id="user-section" style="display: none;">
+                <div class="user-info" id="user-info"></div>
+                <button id="logout-btn" class="btn btn-outline">Sair</button>
+            </div>
         </div>
     </header>
 
@@ -139,6 +149,30 @@
             <p>&copy; 2024 HelpubliAI - Desenvolvido com ❤️ e IA</p>
         </div>
     </footer>
+
+        <!-- ✅ MODAIS DE AUTENTICAÇÃO (ADICIONE AQUI) -->
+    <!-- Modal Login -->
+    <div id="login-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>🔐 Login</h3>
+            <input type="email" id="login-email" placeholder="Email">
+            <input type="password" id="login-password" placeholder="Senha">
+            <button onclick="login()" class="btn btn-primary">Entrar</button>
+        </div>
+    </div>
+
+    <!-- Modal Registro -->
+    <div id="register-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>🚀 Criar Conta</h3>
+            <input type="text" id="register-name" placeholder="Nome">
+            <input type="email" id="register-email" placeholder="Email">
+            <input type="password" id="register-password" placeholder="Senha">
+            <button onclick="register()" class="btn btn-primary">Criar Conta</button>
+        </div>
+    </div>
 
     <!-- Toast Notifications -->
     <div id="toast" class="toast"></div>

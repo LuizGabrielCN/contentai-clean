@@ -463,3 +463,142 @@ body {
         justify-content: center;
     }
 }
+
+/* ======================
+   MODAIS DE AUTENTICAÇÃO
+   ====================== */
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 10% auto;
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    width: 90%;
+    max-width: 400px;
+    box-shadow: var(--shadow);
+    position: relative;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal .close {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--gray);
+}
+
+.modal .close:hover {
+    color: var(--dark);
+}
+
+.modal h3 {
+    margin-bottom: 1.5rem;
+    text-align: center;
+    color: var(--primary-dark);
+}
+
+.modal input {
+    width: 100%;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 2px solid var(--gray-light);
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+}
+
+.modal input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.modal button {
+    width: 100%;
+}
+
+/* ======================
+   UI DE AUTENTICAÇÃO
+   ====================== */
+
+.auth-section {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.user-section {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.plan-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.plan-badge.free {
+    background-color: var(--gray-light);
+    color: var(--gray);
+}
+
+.plan-badge.premium {
+    background: linear-gradient(135deg, var(--success), var(--primary));
+    color: white;
+}
+
+.premium-only {
+    display: none;
+}
+
+/* Header com auth */
+.header .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .auth-section {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .modal-content {
+        margin: 20% auto;
+        width: 85%;
+    }
+}
