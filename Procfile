@@ -1,1 +1,1 @@
-web: cd backend && python serve_frontend.py
+web: cd backend && gunicorn serve_frontend:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
