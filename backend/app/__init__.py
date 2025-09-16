@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
+from flask_migrate import Migrate
 import os
 
 def create_app():
@@ -9,31 +10,42 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-key-123-contentai'
     app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
     app.config['JSON_SORT_KEYS'] = False
-    app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SECURE'] = True  # Para HTTPS
-    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
-    app.config['REMEMBER_COOKIE_SECURE'] = True
+    
+    # ✅ Configuração do Banco de Dados
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///contentai.db')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
     # Habilitar CORS para frontend
     CORS(app, origins=[
         "http://localhost:5000", 
         "http://127.0.0.1:5000", 
         "http://localhost:8000",
-        "http://127.0.0.1:8000"
+        "http://127.0.0.1:8000",
+        "https://*.railway.app"  # Para produção no Railway
     ])
 
-    @app.route('/')
-    def serve_index():
-        from flask import send_from_directory
-        import os
-        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        FRONTEND_FOLDER = os.path.join(BASE_DIR, 'frontend')
-        return send_from_directory(FRONTEND_FOLDER, 'index.html')
+    # ✅ Inicializar Banco de Dados
+    from app.models import db
+    db.init_app(app)
     
+    migrate = Migrate(app, db)
+    
+    # ✅ Criar tabelas se não existirem
+    with app.app_context():
+        db.create_all()
+        # Inicializar estatísticas se não existirem
+        from app.models import AppStatistics
+        if not AppStatistics.query.first():
+            stats = AppStatistics()
+            db.session.add(stats)
+            db.session.commit()
+
     # Registrar blueprints (rotas)
     from app.routes import main_bp
     app.register_blueprint(main_bp)
     
     print("✅ Aplicação Flask configurada com sucesso!")
     print("🔧 Modo:", "Desenvolvimento" if os.environ.get('FLASK_ENV') == 'development' else "Produção")
+    print("🗄️  Banco de dados:", app.config['SQLALCHEMY_DATABASE_URI'])
+    
     return app
