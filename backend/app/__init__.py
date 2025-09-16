@@ -26,7 +26,7 @@ def create_app():
         "http://127.0.0.1:5000", 
         "http://localhost:8000",
         "http://127.0.0.1:8000",
-        "https://*.railway.app"
+        "contentai-clean-production.up.railway.app"
     ])
 
     # ✅ Inicializar Banco de Dados
