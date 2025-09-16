@@ -427,6 +427,163 @@ function setupErrorTracking() {
     });
 }
 
+function useIdeaForScript(idea) {
+    document.getElementById('script-idea').value = idea;
+    
+    // Mudar para a tab de roteiros
+    document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+    document.querySelector('[href="#criar-roteiros"]').classList.add('active');
+    
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    document.getElementById('criar-roteiros').classList.add('active');
+    
+    currentTab = 'criar-roteiros';
+    showToast('Ideia copiada para o criador de roteiros!', 'success');
+}
+
+function exportIdeas() {
+    const ideas = Array.from(document.querySelectorAll('.idea-card')).map(card => ({
+        title: card.querySelector('h5').textContent.replace('💡 ', ''),
+        description: card.querySelector('p').textContent,
+        hashtags: card.querySelector('.hashtags').textContent
+    }));
+    
+    const dataStr = JSON.stringify(ideas, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `ideas-contentai-${new Date().toISOString().split('T')[0]}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    showToast('Ideias exportadas com sucesso!', 'success');
+}
+
+function clearIdeas() {
+    if (confirm('Tem certeza que deseja limpar todas as ideias geradas?')) {
+        document.getElementById('ideas-grid').innerHTML = '';
+        document.getElementById('ideas-results').style.display = 'none';
+        showToast('Ideias limpas!', 'success');
+    }
+}
+
+async function copyScript() {
+    const script = document.getElementById('script-output').textContent;
+    
+    try {
+        await navigator.clipboard.writeText(script);
+        showToast('Roteiro copiado para a área de transferência!', 'success');
+    } catch (error) {
+        showToast('Erro ao copiar roteiro', 'error');
+    }
+}
+
+function saveScript() {
+    const script = document.getElementById('script-output').textContent;
+    const idea = document.getElementById('script-idea').value;
+    
+    const blob = new Blob([script], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `roteiro-${idea.substring(0, 20).toLowerCase().replace(/\s+/g, '-')}.txt`;
+    link.click();
+    
+    URL.revokeObjectURL(url);
+    showToast('Roteiro salvo com sucesso!', 'success');
+}
+
+function loadHistory() {
+    const history = JSON.parse(localStorage.getItem('contentai_history') || '[]');
+    const historyList = document.getElementById('history-list');
+    const emptyState = document.querySelector('.empty-state');
+    
+    if (history.length === 0) {
+        emptyState.style.display = 'block';
+        historyList.innerHTML = '';
+        return;
+    }
+    
+    emptyState.style.display = 'none';
+    historyList.innerHTML = '';
+    
+    history.forEach(item => {
+        const historyItem = document.createElement('div');
+        historyItem.className = 'history-item';
+        
+        let content = '';
+        if (item.type === 'ideas') {
+            content = `
+                <h5>💡 ${item.data.ideas.length} Ideias - ${item.data.niche} para ${item.data.audience}</h5>
+                <p>${item.data.ideas[0]?.title || 'Ideia gerada'}</p>
+            `;
+        } else {
+            content = `
+                <h5>📝 Roteiro - ${item.data.idea.substring(0, 50)}${item.data.idea.length > 50 ? '...' : ''}</h5>
+            `;
+        }
+        
+        content += `<div class="timestamp">${new Date(item.timestamp).toLocaleString('pt-BR')}</div>`;
+        
+        historyItem.innerHTML = content;
+        historyList.appendChild(historyItem);
+    });
+}
+
+function saveToHistory(type, data) {
+    const history = JSON.parse(localStorage.getItem('contentai_history') || '[]');
+    
+    history.unshift({
+        type,
+        data,
+        timestamp: new Date().toISOString(),
+        id: Date.now()
+    });
+    
+    // Manter apenas os últimos 50 itens
+    if (history.length > 50) {
+        history.pop();
+    }
+    
+    localStorage.setItem('contentai_history', JSON.stringify(history));
+    loadHistory();
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = `toast ${type}`;
+    
+    setTimeout(() => {
+        toast.className = 'toast';
+    }, 3000);
+}
+
+// Fallbacks para quando a API não está disponível
+function getFallbackIdeas(niche, audience, count) {
+    const ideas = [
+        {
+            title: `Reações engraçadas a ${niche}`,
+            description: `Vídeo mostrando reações exageradas para ${audience}`,
+            hashtags: `#${niche} #${audience} #humor #viral`
+        },
+        {
+            title: `Desafio de ${niche}`,
+            description: `Desafio divertido envolvendo ${niche} para ${audience}`,
+            hashtags: `#${niche} #${audience} #desafio #divertido`
+        }
+    ];
+    
+    return ideas.slice(0, count);
+}
+
+function getFallbackScript(idea) {
+    return `📝 ROTEIRO PARA: ${idea}\n\n⏰ DURAÇÃO: 20-25s\n🎯 PÚBLICO: Geral\n\n💡 IDEIA: ${idea}\n\n🏷️ HASHTAGS: #${idea.replace(/\s+/g, '')} #viral #conteudo`;
+}
+
 // ======================
 // FUNÇÕES GLOBAIS
 // ======================
@@ -435,3 +592,7 @@ window.useIdeaForScript = useIdeaForScript;
 window.login = login;
 window.register = register;
 window.logout = logout;
+window.exportIdeas = exportIdeas;
+window.clearIdeas = clearIdeas;
+window.copyScript = copyScript;
+window.saveScript = saveScript;
