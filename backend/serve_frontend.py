@@ -9,8 +9,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bac
 app = Flask(__name__)
 
 # Configurações
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FRONTEND_FOLDER = os.path.join(BASE_DIR, 'frontend')
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_FOLDER = os.path.join(BASE_DIR, '../frontend')
+port = int(os.environ.get('PORT', 5000))
 
 # ✅ Frontend routes
 @app.route('/')
