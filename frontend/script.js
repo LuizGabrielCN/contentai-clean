@@ -230,34 +230,46 @@ function setupTabs() {
 }
 
 function setupEventListeners() {
+    // Função segura para adicionar event listeners
+    function safeAddListener(id, event, callback) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener(event, callback);
+        } else {
+            console.warn(`Elemento ${id} não encontrado para event listener`);
+        }
+    }
+
     // Botões de geração
-    document.getElementById('generate-ideas-btn').addEventListener('click', generateIdeas);
-    document.getElementById('generate-script-btn').addEventListener('click', generateScript);
+    safeAddListener('generate-ideas-btn', 'click', generateIdeas);
+    safeAddListener('generate-script-btn', 'click', generateScript);
     
     // Botões de ação
-    document.getElementById('export-ideas').addEventListener('click', exportIdeas);
-    document.getElementById('clear-ideas').addEventListener('click', clearIdeas);
-    document.getElementById('copy-script').addEventListener('click', copyScript);
-    document.getElementById('save-script').addEventListener('click', saveScript);
+    safeAddListener('export-ideas', 'click', exportIdeas);
+    safeAddListener('clear-ideas', 'click', clearIdeas);
+    safeAddListener('copy-script', 'click', copyScript);
+    safeAddListener('save-script', 'click', saveScript);
     
     // Botões de autenticação
-    document.getElementById('login-btn').addEventListener('click', () => {
-        document.getElementById('login-modal').style.display = 'block';
+    safeAddListener('login-btn', 'click', () => {
+        const modal = document.getElementById('login-modal');
+        if (modal) modal.style.display = 'block';
     });
     
-    document.getElementById('register-btn').addEventListener('click', () => {
-        document.getElementById('register-modal').style.display = 'block';
+    safeAddListener('register-btn', 'click', () => {
+        const modal = document.getElementById('register-modal');
+        if (modal) modal.style.display = 'block';
     });
     
-    document.getElementById('logout-btn').addEventListener('click', logout);
-    
-    document.getElementById('login-submit').addEventListener('click', login);
-    document.getElementById('register-submit').addEventListener('click', register);
+    safeAddListener('logout-btn', 'click', logout);
+    safeAddListener('login-submit', 'click', login);
+    safeAddListener('register-submit', 'click', register);
     
     // Fechar modais
     document.querySelectorAll('.modal .close').forEach(closeBtn => {
         closeBtn.addEventListener('click', () => {
-            closeBtn.closest('.modal').style.display = 'none';
+            const modal = closeBtn.closest('.modal');
+            if (modal) modal.style.display = 'none';
         });
     });
 }
