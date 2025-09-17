@@ -471,6 +471,58 @@ def emergency_make_admin():
         
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+    
+@main_bp.route('/admin/users', methods=['GET'])
+@jwt_required()
+def get_all_users():
+    """Listar todos os usuários (apenas admin)"""
+    try:
+        user_id = get_jwt_identity()
+        current_user = User.query.get(user_id)
+        
+        if not current_user or not current_user.is_admin:
+            return jsonify({"error": "Acesso não autorizado"}), 403
+        
+        users = User.query.all()
+        return jsonify({
+            "users": [user.to_dict() for user in users],
+            "total": len(users)
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+@main_bp.route('/admin/user/<int:user_id>', methods=['PUT'])
+@jwt_required()
+def update_user(user_id):
+    """Atualizar usuário (apenas admin)"""
+    try:
+        admin_id = get_jwt_identity()
+        admin = User.query.get(admin_id)
+        
+        if not admin or not admin.is_admin:
+            return jsonify({"error": "Acesso não autorizado"}), 403
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "Usuário não encontrado"}), 404
+        
+        data = request.get_json()
+        if 'is_premium' in data:
+            user.is_premium = data['is_premium']
+        if 'is_admin' in data:
+            user.is_admin = data['is_admin']
+        
+        db.session.commit()
+        
+        return jsonify({
+            "status": "success",
+            "message": "Usuário atualizado",
+            "user": user.to_dict()
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
 
 # ======================
 # FUNÇÕES UTILITÁRIAS
