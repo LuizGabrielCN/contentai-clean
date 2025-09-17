@@ -1,8 +1,8 @@
 from flask import Flask
 from flask_cors import CORS
-from flask_jwt_extended import JWTManager  # ✅ IMPORTE AQUI
+from flask_jwt_extended import JWTManager
 import os
-import secrets  # ✅ ADICIONE ESTA IMPORTACAO
+import secrets
 
 def create_app():
     app = Flask(__name__)
@@ -17,8 +17,24 @@ def create_app():
     app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
     app.config['JSON_SORT_KEYS'] = False
     
-    # ✅ Configuração JWT (AGORA FUNCIONARÁ)
+    # ✅ CONFIGURAÇÃO CRÍTICA: Permitir integer como subject
+    app.config['JWT_IDENTITY_CLAIM'] = 'sub'  # Garantir que usa 'sub' claim
+    app.config['JWT_ALGORITHM'] = 'HS256'     # Definir algoritmo explicitamente
+    
+    # ✅ Configuração JWT
     jwt = JWTManager(app)
+    
+    # ✅ Callback para converter identity para int (se necessário)
+    @jwt.user_identity_loader
+    def user_identity_lookup(user):
+        # Garantir que retornamos o ID do usuário como int
+        return int(user.id) if hasattr(user, 'id') else user
+    
+    @jwt.user_lookup_loader
+    def user_lookup_callback(_jwt_header, jwt_data):
+        from app.models import User
+        identity = jwt_data["sub"]
+        return User.query.get(identity)
     
     # ✅ Configuração do Banco de Dados
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///contentai.db')
@@ -37,9 +53,9 @@ def create_app():
     from app.models import db
     db.init_app(app)
     
-    # ✅ Importar Migrate somente quando necessário
+    # ✅ Importar Migrate
     try:
-        from flask_migrate import Migrate  # ✅ IMPORTE DENTRO DO TRY
+        from flask_migrate import Migrate
         migrate = Migrate(app, db)
         print("✅ Flask-Migrate configurado")
     except ImportError:

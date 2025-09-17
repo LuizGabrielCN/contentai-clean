@@ -148,7 +148,7 @@ def login():
         user.last_login = datetime.utcnow()
         db.session.commit()
         
-        # Criar token
+        # ✅ GARANTIR que identity é o ID (integer)
         access_token = create_access_token(identity=user.id)
         
         return jsonify({
