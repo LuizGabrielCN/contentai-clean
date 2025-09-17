@@ -154,28 +154,48 @@
     </footer>
 
         <!-- ✅ MODAIS DE AUTENTICAÇÃO (ADICIONE AQUI) -->
-    <!-- Modal Login -->
-    <div id="login-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>🔐 Login</h3>
-            <input type="email" id="login-email" placeholder="Email">
+<!-- Modal Login -->
+<div id="login-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>🔐 Login</h3>
+        <input type="email" id="login-email" placeholder="Email">
+        <div style="position: relative;">
             <input type="password" id="login-password" placeholder="Senha">
-            <button onclick="login()" class="btn btn-primary">Entrar</button>
+            <span id="login-eye" class="password-toggle" onclick="togglePasswordVisibility('login-password', 'login-eye')">👁️</span>
         </div>
+        <button onclick="login()" class="btn btn-primary">Entrar</button>
+        <p style="text-align: center; margin-top: 10px;">
+            <a href="#" style="color: var(--primary);">Esqueci minha senha</a>
+        </p>
     </div>
+</div>
 
-    <!-- Modal Registro -->
-    <div id="register-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h3>🚀 Criar Conta</h3>
-            <input type="text" id="register-name" placeholder="Nome">
-            <input type="email" id="register-email" placeholder="Email">
+<!-- Modal Registro -->
+<div id="register-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>🚀 Criar Conta</h3>
+        <input type="text" id="register-name" placeholder="Nome completo">
+        <input type="email" id="register-email" placeholder="Email">
+        
+        <div style="position: relative;">
             <input type="password" id="register-password" placeholder="Senha">
-            <button onclick="register()" class="btn btn-primary">Criar Conta</button>
+            <span id="register-eye" class="password-toggle" onclick="togglePasswordVisibility('register-password', 'register-eye')">👁️</span>
         </div>
+        
+        <div style="position: relative;">
+            <input type="password" id="register-confirm-password" placeholder="Confirmar senha">
+            <span id="register-confirm-eye" class="password-toggle" onclick="togglePasswordVisibility('register-confirm-password', 'register-confirm-eye')">👁️</span>
+        </div>
+        
+        <div id="password-error" style="color: var(--danger); font-size: 0.9rem; display: none; margin-bottom: 1rem;">
+            As senhas não coincidem!
+        </div>
+        
+        <button onclick="register()" class="btn btn-primary">Criar Conta</button>
     </div>
+</div>
 
     <!-- Toast Notifications -->
     <div id="toast" class="toast"></div>

@@ -652,3 +652,24 @@ body {
     background: linear-gradient(135deg, var(--success), var(--primary));
     color: white;
 }
+
+/* Estilos para os olhos de visualizar senha */
+.password-container {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+}
+
+/* Melhorar os inputs de senha */
+input[type="password"], input[type="text"] {
+    padding-right: 40px !important;
+}

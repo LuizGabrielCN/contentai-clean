@@ -34,6 +34,10 @@ function initializeApp() {
     
     // Configurar event listeners
     setupEventListeners();
+
+    // ✅ CONFIGURAR EVENTOS DE TECLADO
+    setupEnterKeyLogin();
+    setupEnterKeyRegister();
     
     // Configurar tracking
     setupButtonTracking();
@@ -169,8 +173,15 @@ function logout() {
     authToken = null;
     currentUser = null;
     localStorage.removeItem('authToken');
+    
+    // ✅ ATUALIZAR UI IMEDIATAMENTE
     updateAuthUI();
-    showToast('Logout realizado', 'success');
+    showToast('Logout realizado com sucesso!', 'success');
+    
+    // ✅ RECARREGAR A PÁGINA PARA LIMPAR ESTADO COMPLETO
+    setTimeout(() => {
+        window.location.reload();
+    }, 1000);
 }
 
 async function makeAuthenticatedRequest(url, options = {}) {
@@ -331,6 +342,101 @@ function setupEventListeners() {
             if (modal) modal.style.display = 'none';
         });
     });
+}
+
+// ✅ FUNÇÃO PARA VISUALIZAR SENHA
+function togglePasswordVisibility(passwordFieldId, eyeIconId) {
+    const passwordField = document.getElementById(passwordFieldId);
+    const eyeIcon = document.getElementById(eyeIconId);
+    
+    if (passwordField.type === 'password') {
+        passwordField.type = 'text';
+        if (eyeIcon) eyeIcon.textContent = '🔒';
+    } else {
+        passwordField.type = 'password';
+        if (eyeIcon) eyeIcon.textContent = '👁️';
+    }
+}
+
+// ✅ FUNÇÃO PARA VALIDAR CONFIRMAÇÃO DE SENHA
+function validatePasswordConfirmation() {
+    const password = document.getElementById('register-password').value;
+    const confirmPassword = document.getElementById('register-confirm-password').value;
+    const errorElement = document.getElementById('password-error');
+    
+    if (password !== confirmPassword) {
+        errorElement.style.display = 'block';
+        return false;
+    } else {
+        errorElement.style.display = 'none';
+        return true;
+    }
+}
+
+// ✅ LOGIN COM ENTER
+function setupEnterKeyLogin() {
+    document.getElementById('login-password').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            login();
+        }
+    });
+}
+
+// ✅ REGISTRO COM ENTER  
+function setupEnterKeyRegister() {
+    document.getElementById('register-confirm-password').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            register();
+        }
+    });
+}
+
+// ✅ ATUALIZAR FUNÇÃO REGISTER PARA VALIDAR SENHA
+async function register() {
+    const email = document.getElementById('register-email').value.trim();
+    const password = document.getElementById('register-password').value;
+    const confirmPassword = document.getElementById('register-confirm-password').value;
+    const name = document.getElementById('register-name').value.trim();
+    
+    if (!email || !password || !name) {
+        showToast('Preencha todos os campos', 'error');
+        return;
+    }
+    
+    // ✅ VALIDAR CONFIRMAÇÃO DE SENHA
+    if (password !== confirmPassword) {
+        document.getElementById('password-error').style.display = 'block';
+        showToast('As senhas não coincidem!', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, name })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            authToken = data.access_token;
+            currentUser = data.user;
+            localStorage.setItem('authToken', authToken);
+            
+            updateAuthUI();
+            updateUIForLoggedInUser(currentUser);
+            
+            showToast('Conta criada com sucesso!', 'success');
+            document.getElementById('register-modal').style.display = 'none';
+            
+        } else {
+            showToast(data.error, 'error');
+        }
+        
+    } catch (error) {
+        showToast('Erro ao criar conta', 'error');
+    }
 }
 
 // ======================
