@@ -2,13 +2,14 @@ from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager  # ✅ IMPORTE AQUI
 import os
+import secrets  # ✅ ADICIONE ESTA IMPORTACAO
 
 def create_app():
     app = Flask(__name__)
     
     # Configurações básicas
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'dev-key-123-contentai'
-    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or 'jwt-secret-key-123'
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or secrets.token_hex(16)
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or secrets.token_hex(32)
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600  # 1 hora
     app.config['JWT_TOKEN_LOCATION'] = ['headers']
     app.config['JWT_HEADER_NAME'] = 'Authorization'
@@ -38,7 +39,7 @@ def create_app():
     
     # ✅ Importar Migrate somente quando necessário
     try:
-        from flask_migrate import Migrate
+        from flask_migrate import Migrate  # ✅ IMPORTE DENTRO DO TRY
         migrate = Migrate(app, db)
         print("✅ Flask-Migrate configurado")
     except ImportError:
