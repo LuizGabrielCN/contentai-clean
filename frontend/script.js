@@ -116,29 +116,28 @@ async function login() {
         
         const data = await response.json();
         
+        console.log('Login response:', response.status, data); // ✅ Debug
+        
         if (response.ok) {
             authToken = data.access_token;
             currentUser = data.user;
             localStorage.setItem('authToken', authToken);
             
-            // ✅ ATUALIZAR UI IMEDIATAMENTE APÓS LOGIN
             updateAuthUI();
             updateUIForLoggedInUser(currentUser);
             
             showToast('Login realizado com sucesso!', 'success');
-            
-            // Fechar modal de login
             document.getElementById('login-modal').style.display = 'none';
             
-            // ✅ RECARREGAR HISTÓRICO se estiver na tab de histórico
-            if (currentTab === 'historico') {
-                loadUserHistory();  // Você precisará criar esta função
-            }
         } else {
-            showToast(data.error, 'error');
+            // ✅ Mudar para mostrar mensagem específica da API
+            showToast(data.error || 'Erro ao fazer login', 'error');
         }
+        
     } catch (error) {
-        showToast('Erro ao fazer login', 'error');
+        console.error('Login error:', error);
+        // ✅ Mostrar mensagem mais específica
+        showToast('Erro de conexão. Tente novamente.', 'error');
     }
 }
 
@@ -635,6 +634,34 @@ function getFallbackScript(idea) {
     return `📝 ROTEIRO PARA: ${idea}\n\n⏰ DURAÇÃO: 20-25s\n🎯 PÚBLICO: Geral\n\n💡 IDEIA: ${idea}\n\n🏷️ HASHTAGS: #${idea.replace(/\s+/g, '')} #viral #conteudo`;
 }
 
+// ======================
+// FUNÇÕES TEMPORÁRIAS
+// ======================
+
+// Adicione esta função de debug temporariamente
+async function debugLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const password = document.getElementById('login-password').value;
+    
+    const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+    });
+    
+    console.log('Status:', response.status);
+    console.log('Headers:', Object.fromEntries([...response.headers]));
+    
+    const text = await response.text();
+    console.log('Raw response:', text);
+    
+    try {
+        const data = JSON.parse(text);
+        console.log('Parsed JSON:', data);
+    } catch (e) {
+        console.log('Not JSON:', text);
+    }
+}
 
 // ======================
 // FUNÇÕES GLOBAIS
