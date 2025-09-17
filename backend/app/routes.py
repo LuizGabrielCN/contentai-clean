@@ -445,6 +445,33 @@ def cache_stats():
         "script_cache_misses": generate_script_cached.cache_info().misses
     })
 
+@main_bp.route('/emergency/make-admin', methods=['POST'])
+def emergency_make_admin():
+    """Rota de emergência para tornar usuário em admin"""
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        
+        if not email:
+            return jsonify({"error": "Email é obrigatório"}), 400
+        
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return jsonify({"error": "Usuário não encontrado"}), 404
+        
+        user.is_admin = True
+        user.is_premium = True
+        db.session.commit()
+        
+        return jsonify({
+            "status": "success", 
+            "message": f"Usuário {email} agora é administrador",
+            "user": user.to_dict()
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
 # ======================
 # FUNÇÕES UTILITÁRIAS
 # ======================
