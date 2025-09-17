@@ -17,6 +17,18 @@ function initializeApp() {
         document.getElementById('loading').style.display = 'none';
     }, 1500);
 
+    // ✅ VERIFICAR SE TODOS OS ELEMENTOS EXISTEM
+    const requiredElements = [
+        'auth-section', 'user-section', 'user-email', 'user-plan',
+        'login-btn', 'register-btn', 'logout-btn'
+    ];
+    
+    requiredElements.forEach(id => {
+        if (!document.getElementById(id)) {
+            console.error(`Elemento #${id} não encontrado no DOM`);
+        }
+    });
+
     // Configurar navegação por tabs
     setupTabs();
     
@@ -43,36 +55,6 @@ function initializeApp() {
 // SISTEMA DE AUTENTICAÇÃO
 // ======================
 
-async function checkAuthentication() {
-    if (authToken) {
-        try {
-            const response = await makeAuthenticatedRequest('/api/auth/me');
-            if (response.ok) {
-                const data = await response.json();
-                currentUser = data.user;
-                
-                // ✅ ATUALIZAR UI IMEDIATAMENTE
-                updateAuthUI();
-                updateUIForLoggedInUser(currentUser);
-                
-                showToast('Sessão restaurada!', 'success');
-            } else {
-                // Token inválido, limpar
-                localStorage.removeItem('authToken');
-                authToken = null;
-                currentUser = null;
-                updateAuthUI(); // ✅ Atualizar UI também quando desloga
-            }
-        } catch (error) {
-            console.error('Erro ao verificar autenticação:', error);
-            localStorage.removeItem('authToken');
-            authToken = null;
-            currentUser = null;
-            updateAuthUI(); // ✅ Atualizar UI em caso de erro
-        }
-    }
-    updateAuthUI(); // ✅ Garantir que UI está atualizada
-}
 
 function updateAuthUI() {
     const authSection = document.getElementById('auth-section');
@@ -80,14 +62,20 @@ function updateAuthUI() {
     const userEmail = document.getElementById('user-email');
     const userPlan = document.getElementById('user-plan');
     
+    // ✅ VERIFICAR SE ELEMENTOS EXISTEM ANTES DE USAR
+    if (!authSection || !userSection || !userEmail || !userPlan) {
+        console.warn('Elementos de auth UI não encontrados');
+        return;
+    }
+    
     if (currentUser) {
         authSection.style.display = 'none';
-        userSection.style.display = 'flex';  // ✅ Mudar para flex
+        userSection.style.display = 'flex';
         userEmail.textContent = currentUser.email;
         userPlan.textContent = currentUser.is_premium ? 'Premium' : 'Free';
         userPlan.className = currentUser.is_premium ? 'plan-badge premium' : 'plan-badge free';
         
-        // ✅ Atualizar também elementos premium-only
+        // ✅ Atualizar elementos premium-only
         const premiumElements = document.querySelectorAll('.premium-only');
         premiumElements.forEach(el => {
             el.style.display = currentUser.is_premium ? 'block' : 'none';
@@ -210,7 +198,7 @@ async function makeAuthenticatedRequest(url, options = {}) {
 }
 
 function updateUIForLoggedInUser(user) {
-    // Atualizar UI com informações do usuário
+    // ✅ Verificar se elemento existe antes de usar
     const userInfoElement = document.getElementById('user-info');
     if (userInfoElement) {
         userInfoElement.innerHTML = `
@@ -221,10 +209,12 @@ function updateUIForLoggedInUser(user) {
         `;
     }
     
-    // Mostrar/ocultar elementos baseado no plano
+    // ✅ Mostrar/ocultar elementos baseado no plano
     const premiumElements = document.querySelectorAll('.premium-only');
     premiumElements.forEach(el => {
-        el.style.display = user.is_premium ? 'block' : 'none';
+        if (el) {
+            el.style.display = user.is_premium ? 'block' : 'none';
+        }
     });
 }
 
@@ -240,6 +230,37 @@ async function loadUserHistory() {
     } catch (error) {
         console.error('Erro ao carregar histórico:', error);
     }
+}
+
+async function checkAuthentication() {
+    if (authToken) {
+        try {
+            const response = await makeAuthenticatedRequest('/api/auth/me');
+            if (response.ok) {
+                const data = await response.json();
+                currentUser = data.user;
+                
+                // ✅ ATUALIZAR UI IMEDIATAMENTE
+                updateAuthUI();
+                updateUIForLoggedInUser(currentUser);
+                
+                showToast('Sessão restaurada!', 'success');
+            } else {
+                // Token inválido, limpar
+                localStorage.removeItem('authToken');
+                authToken = null;
+                currentUser = null;
+                updateAuthUI(); // ✅ Atualizar UI também quando desloga
+            }
+        } catch (error) {
+            console.error('Erro ao verificar autenticação:', error);
+            localStorage.removeItem('authToken');
+            authToken = null;
+            currentUser = null;
+            updateAuthUI(); // ✅ Atualizar UI em caso de erro
+        }
+    }
+    updateAuthUI(); // ✅ Garantir que UI está atualizada
 }
 
 // ======================
