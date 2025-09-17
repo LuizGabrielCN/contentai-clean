@@ -25,11 +25,15 @@ def create_app():
     # ✅ Configuração JWT
     jwt = JWTManager(app)
     
-    # ✅ Callback para converter identity para int (se necessário)
     @jwt.user_identity_loader
     def user_identity_lookup(user):
-        # Garantir que retornamos o ID do usuário como int
-        return int(user.id)
+        # user já deve ser o ID (integer) do usuário
+        if isinstance(user, int):
+            return user
+        elif hasattr(user, 'id'):
+            return user.id
+        else:
+            return str(user)  # Fallback seguro
     
     @jwt.user_lookup_loader
     def user_lookup_callback(_jwt_header, jwt_data):

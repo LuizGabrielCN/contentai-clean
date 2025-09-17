@@ -101,7 +101,7 @@ def register():
         
         # Validar email
         try:
-            valid = validate_email(data['email'])
+            valid = validate_email(data['email'], check_deliverability=False)  # ✅ Não verificar entrega
             email = valid.email
         except EmailNotValidError:
             return jsonify({"error": "Email inválido"}), 400
