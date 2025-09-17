@@ -50,18 +50,28 @@ async function checkAuthentication() {
             if (response.ok) {
                 const data = await response.json();
                 currentUser = data.user;
+                
+                // ✅ ATUALIZAR UI IMEDIATAMENTE
+                updateAuthUI();
                 updateUIForLoggedInUser(currentUser);
+                
                 showToast('Sessão restaurada!', 'success');
             } else {
                 // Token inválido, limpar
                 localStorage.removeItem('authToken');
                 authToken = null;
+                currentUser = null;
+                updateAuthUI(); // ✅ Atualizar UI também quando desloga
             }
         } catch (error) {
             console.error('Erro ao verificar autenticação:', error);
+            localStorage.removeItem('authToken');
+            authToken = null;
+            currentUser = null;
+            updateAuthUI(); // ✅ Atualizar UI em caso de erro
         }
     }
-    updateAuthUI();
+    updateAuthUI(); // ✅ Garantir que UI está atualizada
 }
 
 function updateAuthUI() {
@@ -72,10 +82,16 @@ function updateAuthUI() {
     
     if (currentUser) {
         authSection.style.display = 'none';
-        userSection.style.display = 'block';
+        userSection.style.display = 'flex';  // ✅ Mudar para flex
         userEmail.textContent = currentUser.email;
         userPlan.textContent = currentUser.is_premium ? 'Premium' : 'Free';
-        userPlan.className = currentUser.is_premium ? 'premium-badge' : 'free-badge';
+        userPlan.className = currentUser.is_premium ? 'plan-badge premium' : 'plan-badge free';
+        
+        // ✅ Atualizar também elementos premium-only
+        const premiumElements = document.querySelectorAll('.premium-only');
+        premiumElements.forEach(el => {
+            el.style.display = currentUser.is_premium ? 'block' : 'none';
+        });
     } else {
         authSection.style.display = 'block';
         userSection.style.display = 'none';
@@ -104,11 +120,20 @@ async function login() {
             authToken = data.access_token;
             currentUser = data.user;
             localStorage.setItem('authToken', authToken);
+            
+            // ✅ ATUALIZAR UI IMEDIATAMENTE APÓS LOGIN
+            updateAuthUI();
             updateUIForLoggedInUser(currentUser);
+            
             showToast('Login realizado com sucesso!', 'success');
             
             // Fechar modal de login
             document.getElementById('login-modal').style.display = 'none';
+            
+            // ✅ RECARREGAR HISTÓRICO se estiver na tab de histórico
+            if (currentTab === 'historico') {
+                loadUserHistory();  // Você precisará criar esta função
+            }
         } else {
             showToast(data.error, 'error');
         }
@@ -202,6 +227,20 @@ function updateUIForLoggedInUser(user) {
     premiumElements.forEach(el => {
         el.style.display = user.is_premium ? 'block' : 'none';
     });
+}
+
+async function loadUserHistory() {
+    if (!currentUser) return;
+    
+    try {
+        const response = await makeAuthenticatedRequest('/api/user/history');
+        if (response.ok) {
+            const data = await response.json();
+            displayUserHistory(data.history);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+    }
 }
 
 // ======================
@@ -595,6 +634,7 @@ function getFallbackIdeas(niche, audience, count) {
 function getFallbackScript(idea) {
     return `📝 ROTEIRO PARA: ${idea}\n\n⏰ DURAÇÃO: 20-25s\n🎯 PÚBLICO: Geral\n\n💡 IDEIA: ${idea}\n\n🏷️ HASHTAGS: #${idea.replace(/\s+/g, '')} #viral #conteudo`;
 }
+
 
 // ======================
 // FUNÇÕES GLOBAIS
