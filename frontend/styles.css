@@ -627,3 +627,28 @@ body {
     background: linear-gradient(135deg, var(--success), var(--primary));
     color: white;
 }
+
+/* Garantir que user-section seja flex */
+.user-section {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Melhorar aparência do badge de plano */
+.plan-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.plan-badge.free {
+    background-color: var(--gray-light);
+    color: var(--gray);
+}
+
+.plan-badge.premium {
+    background: linear-gradient(135deg, var(--success), var(--primary));
+    color: white;
+}
