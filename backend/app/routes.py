@@ -149,7 +149,7 @@ def login():
         db.session.commit()
         
         # ✅ GARANTIR que identity é o ID (integer)
-        access_token = create_access_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))  # Converter para string
         
         return jsonify({
             "status": "success",

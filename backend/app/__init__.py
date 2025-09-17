@@ -17,6 +17,7 @@ def create_app():
     app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
     app.config['JSON_SORT_KEYS'] = False
     
+    
     # ✅ CONFIGURAÇÃO CRÍTICA: Permitir integer como subject
     app.config['JWT_IDENTITY_CLAIM'] = 'sub'  # Garantir que usa 'sub' claim
     app.config['JWT_ALGORITHM'] = 'HS256'     # Definir algoritmo explicitamente
@@ -28,7 +29,7 @@ def create_app():
     @jwt.user_identity_loader
     def user_identity_lookup(user):
         # Garantir que retornamos o ID do usuário como int
-        return int(user.id) if hasattr(user, 'id') else user
+        return int(user.id)
     
     @jwt.user_lookup_loader
     def user_lookup_callback(_jwt_header, jwt_data):
