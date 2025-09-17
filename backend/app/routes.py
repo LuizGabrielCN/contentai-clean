@@ -523,6 +523,45 @@ def update_user(user_id):
         
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+    
+@main_bp.route('/api/admin/dashboard', methods=['GET'])
+@jwt_required()
+def admin_dashboard():
+    """Dashboard administrativo"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        
+        if not user or not user.is_admin:
+            return jsonify({"error": "Acesso não autorizado"}), 403
+        
+        # Estatísticas
+        total_users = User.query.count()
+        premium_users = User.query.filter_by(is_premium=True).count()
+        total_ideas = GenerationHistory.query.filter_by(type='ideas').count()
+        total_scripts = GenerationHistory.query.filter_by(type='script').count()
+        
+        return jsonify({
+            "status": "success",
+            "dashboard": {
+                "users": {
+                    "total": total_users,
+                    "premium": premium_users,
+                    "free": total_users - premium_users
+                },
+                "content": {
+                    "ideas_generated": total_ideas,
+                    "scripts_generated": total_scripts
+                },
+                "system": {
+                    "ai_configured": not ai_service.fallback_mode,
+                    "database": "connected"
+                }
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
 
 # ======================
 # FUNÇÕES UTILITÁRIAS
