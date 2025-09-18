@@ -33,6 +33,7 @@ class User(db.Model):
             'email': self.email,
             'name': self.name,
             'is_premium': self.is_premium,
+            'is_admin': self.is_admin,
             'created_at': self.created_at.isoformat(),
             'last_login': self.last_login.isoformat() if self.last_login else None
         }

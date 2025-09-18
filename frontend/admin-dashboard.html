@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - HelpubliAI</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Carregando Dashboard Admin...</p>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <span class="logo-icon">🚀</span>
+                <h1>HelpubliAI Admin</h1>
+            </div>
+            <nav class="nav">
+                <a href="#dashboard" class="nav-link active">Dashboard</a>
+                <a href="#users" class="nav-link">Usuários</a>
+                <a href="#content" class="nav-link">Conteúdo</a>
+                <a href="#analytics" class="nav-link">Analytics</a>
+            </nav>
+            <div class="user-section">
+                <div class="user-info">
+                    <span id="admin-email"></span>
+                    <span class="plan-badge admin">Admin</span>
+                </div>
+                <button onclick="logout()" class="btn btn-outline">Sair</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Dashboard Tab -->
+            <section id="dashboard" class="tab-content active">
+                <div class="welcome-section">
+                    <h2>📊 Dashboard Administrativo</h2>
+                    <p>Gerencie sua plataforma HelpubliAI</p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>👥 Total Usuários</h3>
+                        <div class="stat-number" id="total-users">0</div>
+                        <div class="stat-trend" id="users-trend"></div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>💡 Ideias Geradas</h3>
+                        <div class="stat-number" id="total-ideas">0</div>
+                        <div class="stat-trend" id="ideas-trend"></div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>📝 Roteiros Gerados</h3>
+                        <div class="stat-number" id="total-scripts">0</div>
+                        <div class="stat-trend" id="scripts-trend"></div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>⭐ Usuários Premium</h3>
+                        <div class="stat-number" id="premium-users">0</div>
+                        <div class="stat-trend" id="premium-trend"></div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>📈 Crescimento de Usuários</h3>
+                        <canvas id="users-chart"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>🎯 Distribuição de Planos</h3>
+                        <canvas id="plans-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Users Management Tab -->
+            <section id="users" class="tab-content">
+                <div class="card">
+                    <h3>👥 Gerenciamento de Usuários</h3>
+                    
+                    <div class="admin-actions">
+                        <input type="text" id="user-search" placeholder="🔍 Buscar usuários..." class="form-group">
+                        <button onclick="loadUsers()" class="btn btn-primary">Atualizar</button>
+                    </div>
+
+                    <div class="users-table-container">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Email</th>
+                                    <th>Nome</th>
+                                    <th>Plano</th>
+                                    <th>Admin</th>
+                                    <th>Criado em</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <!-- Users will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Content Management Tab -->
+            <section id="content" class="tab-content">
+                <div class="card">
+                    <h3>📊 Conteúdo Gerado</h3>
+                    <div class="content-stats">
+                        <div class="stat-item">
+                            <span>Total de Gerações:</span>
+                            <span id="total-generations">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span>Gerações Hoje:</span>
+                            <span id="today-generations">0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Analytics Tab -->
+            <section id="analytics" class="tab-content">
+                <div class="card">
+                    <h3>📈 Analytics Detalhados</h3>
+                    <p>Em desenvolvimento...</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Toast Notifications -->
+    <div id="toast" class="toast"></div>
+
+    <script src="admin-dashboard.js"></script>
+</body>
+</html>

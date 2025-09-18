@@ -64,16 +64,16 @@ def init_cache_cleaner(app):
 
 def check_usage_limits(user_id):
     """Verifica limites de uso baseado no plano"""
-    if not user_id:  # Usuário anônimo - limite reduzido
+    if user_id is None:  # Usuário anônimo - limite reduzido
         today = datetime.utcnow().date()
         anonymous_generations = GenerationHistory.query.filter(
-            GenerationHistory.user_id == None,
+            GenerationHistory.user_id.is_(None),
             GenerationHistory.user_session.like(f"%{request.remote_addr}%"),
             db.func.date(GenerationHistory.created_at) == today
         ).count()
         return anonymous_generations < 3  # 3 gerações/dia para anônimos
     
-    user = User.query.get(user_id)
+    user = User.query.get(int(user_id)) if user_id else None
     
     if user and user.is_premium:
         return True  # Sem limites para premium
@@ -81,7 +81,7 @@ def check_usage_limits(user_id):
     # Verificar uso diário para free users
     today = datetime.utcnow().date()
     today_generations = GenerationHistory.query.filter(
-        GenerationHistory.user_id == user_id,
+        GenerationHistory.user_id == int(user_id),
         db.func.date(GenerationHistory.created_at) == today
     ).count()
     
@@ -165,7 +165,7 @@ def login():
 @jwt_required()
 def get_current_user():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         user = User.query.get(user_id)
         
         if not user:
@@ -183,7 +183,7 @@ def get_current_user():
 @jwt_required()
 def upgrade_to_premium():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         user = User.query.get(user_id)
         
         if not user:
@@ -224,6 +224,23 @@ def health_check():
             "total_feedbacks": stats.total_feedbacks if stats else 0
         }
     })
+
+def update_statistics(generation_type):
+    """Atualiza estatísticas da aplicação"""
+    stats = AppStatistics.query.first()
+    if not stats:
+        stats = AppStatistics()
+        db.session.add(stats)
+    
+    if generation_type == 'ideas':
+        stats.total_ideas_generated += 1
+    elif generation_type == 'script':
+        stats.total_scripts_generated += 1
+    elif generation_type == 'feedback':
+        stats.total_feedbacks += 1
+    
+    stats.last_updated = datetime.utcnow()
+    db.session.commit()
 
 @main_bp.route('/api/generate-ideas', methods=['POST'])
 @jwt_required(optional=True)
@@ -335,7 +352,7 @@ def generate_script():
 def get_user_history():
     """Retorna histórico do usuário logado"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         
@@ -373,6 +390,7 @@ def api_feedback():
         feedback = UserFeedback(
             message=message,
             rating=rating,
+            user_id=int(user_id) if user_id else None,
             user_session=request.remote_addr
         )
         db.session.add(feedback)
@@ -410,11 +428,11 @@ def api_statistics():
 def admin_clear_cache():
     """Rota administrativa para limpar cache manualmente"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         user = User.query.get(user_id)
         
         # Apenas admin pode limpar cache
-        if not user or not user.is_premium:
+        if not user or not user.is_admin:
             return jsonify({"error": "Acesso não autorizado"}), 403
         
         clear_all_cache()
@@ -477,7 +495,7 @@ def emergency_make_admin():
 def get_all_users():
     """Listar todos os usuários (apenas admin)"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         current_user = User.query.get(user_id)
         
         if not current_user or not current_user.is_admin:
@@ -562,24 +580,5 @@ def admin_dashboard():
         
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
-
-# ======================
-# FUNÇÕES UTILITÁRIAS
-# ======================
-
-def update_statistics(generation_type):
-    """Atualiza estatísticas da aplicação"""
-    stats = AppStatistics.query.first()
-    if not stats:
-        stats = AppStatistics()
-        db.session.add(stats)
     
-    if generation_type == 'ideas':
-        stats.total_ideas_generated += 1
-    elif generation_type == 'script':
-        stats.total_scripts_generated += 1
-    elif generation_type == 'feedback':
-        stats.total_feedbacks += 1
-    
-    stats.last_updated = datetime.utcnow()
-    db.session.commit()
+
