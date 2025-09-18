@@ -830,3 +830,118 @@ input[type="password"], input[type="text"] {
         flex-direction: column;
     }
 }
+
+/* Admin Dashboard Styles */
+.admin-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.admin-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.search-box {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.search-box input,
+.search-box select {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid var(--gray-light);
+    border-radius: var(--border-radius);
+}
+
+.bulk-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    align-items: center;
+}
+
+.bulk-actions select {
+    flex: 1;
+}
+
+.real-time-stats {
+    text-align: center;
+}
+
+.stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-item {
+    background: var(--light);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+}
+
+.stat-label {
+    display: block;
+    color: var(--gray);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-value {
+    display: block;
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary);
+}
+
+/* Checkboxes */
+.user-checkbox {
+    transform: scale(1.2);
+}
+
+/* Status badges */
+.status-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-badge.premium {
+    background: var(--success);
+    color: white;
+}
+
+.status-badge.free {
+    background: var(--gray-light);
+    color: var(--gray);
+}
+
+.status-badge.admin {
+    background: var(--primary);
+    color: white;
+}
+
+.status-badge.user {
+    background: var(--gray);
+    color: white;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .admin-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-row {
+        grid-template-columns: 1fr;
+    }
+}

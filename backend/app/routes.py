@@ -577,6 +577,29 @@ def admin_dashboard():
                 }
             }
         })
+
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+    
+@main_bp.route('/admin/user/<int:user_id>', methods=['GET'])
+@jwt_required()
+def get_user(user_id):
+    """Obter dados de um usuário específico"""
+    try:
+        admin_id = get_jwt_identity()
+        admin = User.query.get(admin_id)
+        
+        if not admin or not admin.is_admin:
+            return jsonify({"error": "Acesso não autorizado"}), 403
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "Usuário não encontrado"}), 404
+        
+        return jsonify(user.to_dict())
+        
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
         
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500

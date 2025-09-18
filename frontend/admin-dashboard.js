@@ -1,156 +1,226 @@
-// Configurações da API
-const API_BASE_URL = '';
-let authToken = localStorage.getItem('authToken');
-let currentAdmin = null;
+// Variáveis globais
+let allUsers = [];
+let currentFilters = {};
+let realTimeData = {
+    onlineUsers: 0,
+    generationsPerMinute: 0,
+    activeSessions: 0
+};
 
-// Inicialização
-document.addEventListener('DOMContentLoaded', function() {
-    initializeAdminDashboard();
-});
-
-async function initializeAdminDashboard() {
-    // Verificar autenticação e permissões
-    if (!await checkAdminPermissions()) {
-        window.location.href = '/';
-        return;
-    }
-
-    // Configurar navegação
-    setupAdminTabs();
-    
-    // Carregar dados iniciais
-    loadDashboardData();
-    loadUsers();
-
-    // Esconder loading
-    setTimeout(() => {
-        document.getElementById('loading').style.display = 'none';
-    }, 1000);
+// Novas funções de gestão
+async function loadFullDashboard() {
+    await loadDashboardData();
+    await loadUsers();
+    await loadRealTimeStats();
+    startRealTimeUpdates();
 }
 
-async function checkAdminPermissions() {
-    if (!authToken) {
-        showToast('Acesso não autorizado', 'error');
-        return false;
-    }
-
+async function loadRealTimeStats() {
     try {
-        const response = await fetch('/api/auth/me', {
-            headers: {
-                'Authorization': `Bearer ${authToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
+        const response = await makeAuthenticatedRequest('/admin/real-time-stats');
         if (response.ok) {
-            const user = await response.json();
-            currentAdmin = user.user;
-            
-            // Verificar se é admin
-            const adminResponse = await fetch('/admin/users', {
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (adminResponse.status === 200) {
-                document.getElementById('admin-email').textContent = currentAdmin.email;
-                return true;
-            }
+            realTimeData = await response.json();
+            updateRealTimeUI();
         }
     } catch (error) {
-        console.error('Erro ao verificar permissões:', error);
+        console.error('Erro ao carregar estatísticas:', error);
     }
-
-    showToast('Acesso admin requerido', 'error');
-    return false;
 }
 
-function setupAdminTabs() {
-    const navLinks = document.querySelectorAll('.nav-link');
-    const tabContents = document.querySelectorAll('.tab-content');
+function updateRealTimeUI() {
+    document.getElementById('online-users').textContent = realTimeData.onlineUsers;
+    document.getElementById('generations-minute').textContent = realTimeData.generationsPerMinute;
+}
 
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            
-            navLinks.forEach(l => l.classList.remove('active'));
-            link.classList.add('active');
-            
-            tabContents.forEach(content => content.classList.remove('active'));
-            
-            const targetTab = link.getAttribute('href').substring(1);
-            document.getElementById(targetTab).classList.add('active');
+function startRealTimeUpdates() {
+    // Atualizar a cada 30 segundos
+    setInterval(loadRealTimeStats, 30000);
+    
+    // WebSocket para atualizações em tempo real
+    setupWebSocketConnection();
+}
+
+function setupWebSocketConnection() {
+    // Implementar WebSocket para updates em tempo real
+    const ws = new WebSocket(`wss://${window.location.host}/admin-ws`);
+    
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        handleRealTimeUpdate(data);
+    };
+}
+
+function handleRealTimeUpdate(data) {
+    switch (data.type) {
+        case 'user_online':
+            realTimeData.onlineUsers = data.count;
+            break;
+        case 'generation_created':
+            realTimeData.generationsPerMinute = data.rate;
+            break;
+        case 'new_user':
+            addUserToTable(data.user);
+            break;
+    }
+    updateRealTimeUI();
+}
+
+// Gestão de Usuários Avançada
+function filterUsers() {
+    const searchTerm = document.getElementById('user-search').value.toLowerCase();
+    const filterType = document.getElementById('user-filter').value;
+    
+    let filtered = allUsers;
+    
+    // Aplicar filtro de tipo
+    if (filterType === 'premium') {
+        filtered = filtered.filter(u => u.is_premium);
+    } else if (filterType === 'free') {
+        filtered = filtered.filter(u => !u.is_premium);
+    } else if (filterType === 'admin') {
+        filtered = filtered.filter(u => u.is_admin);
+    }
+    
+    // Aplicar busca
+    if (searchTerm) {
+        filtered = filtered.filter(u => 
+            u.email.toLowerCase().includes(searchTerm) ||
+            (u.name && u.name.toLowerCase().includes(searchTerm))
+        );
+    }
+    
+    renderUsersTable(filtered);
+}
+
+async function editUser(userId) {
+    try {
+        const response = await makeAuthenticatedRequest(`/admin/user/${userId}`);
+        if (response.ok) {
+            const user = await response.json();
+            showEditUserModal(user);
+        }
+    } catch (error) {
+        showToast('Erro ao carregar usuário', 'error');
+    }
+}
+
+function showEditUserModal(user) {
+    const modal = document.getElementById('user-edit-modal');
+    const formDiv = document.getElementById('user-edit-form');
+    
+    formDiv.innerHTML = `
+        <form onsubmit="updateUser(${user.id}); return false;">
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" value="${user.email}" disabled>
+            </div>
+            <div class="form-group">
+                <label>Nome:</label>
+                <input type="text" value="${user.name || ''}" id="edit-user-name">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" ${user.is_premium ? 'checked' : ''} id="edit-user-premium">
+                    Usuário Premium
+                </label>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" ${user.is_admin ? 'checked' : ''} id="edit-user-admin">
+                    Administrador
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+        </form>
+    `;
+    
+    modal.style.display = 'block';
+}
+
+async function updateUser(userId) {
+    const formData = {
+        name: document.getElementById('edit-user-name').value,
+        is_premium: document.getElementById('edit-user-premium').checked,
+        is_admin: document.getElementById('edit-user-admin').checked
+    };
+    
+    try {
+        const response = await makeAuthenticatedRequest(`/admin/user/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(formData)
         });
+        
+        if (response.ok) {
+            showToast('Usuário atualizado com sucesso!', 'success');
+            document.getElementById('user-edit-modal').style.display = 'none';
+            loadUsers();
+        }
+    } catch (error) {
+        showToast('Erro ao atualizar usuário', 'error');
+    }
+}
+
+// Ações em Massa
+function applyBulkAction() {
+    const action = document.getElementById('bulk-action').value;
+    const selectedUsers = getSelectedUsers();
+    
+    if (!action || selectedUsers.length === 0) {
+        showToast('Selecione uma ação e usuários', 'warning');
+        return;
+    }
+    
+    const actions = {
+        'make_premium': { is_premium: true },
+        'remove_premium': { is_premium: false },
+        'make_admin': { is_admin: true },
+        'remove_admin': { is_admin: false }
+    };
+    
+    selectedUsers.forEach(userId => {
+        applyUserAction(userId, actions[action]);
     });
 }
 
-async function loadDashboardData() {
+function getSelectedUsers() {
+    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.dataset.userId));
+}
+
+async function applyUserAction(userId, data) {
     try {
-        // Carregar estatísticas
-        const [statsResponse, healthResponse] = await Promise.all([
-            fetch('/api/statistics', {
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json'
-                }
-            }),
-            fetch('/api/health', {
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                    'Content-Type': 'application/json'
-                }
-            })
-        ]);
-
-        if (statsResponse.ok && healthResponse.ok) {
-            const stats = await statsResponse.json();
-            const health = await healthResponse.json();
-
-            // Atualizar cards de estatísticas
-            document.getElementById('total-users').textContent = stats.users.total;
-            document.getElementById('premium-users').textContent = stats.users.premium;
-            document.getElementById('total-ideas').textContent = stats.statistics.total_ideas_generated;
-            document.getElementById('total-scripts').textContent = stats.statistics.total_scripts_generated;
-
-            // Criar gráficos
-            createUsersChart(stats.users);
-            createPlansChart(stats.users);
-        }
+        await makeAuthenticatedRequest(`/admin/user/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(data)
+        });
     } catch (error) {
-        console.error('Erro ao carregar dashboard:', error);
-        showToast('Erro ao carregar dados', 'error');
+        console.error(`Erro ao atualizar usuário ${userId}:`, error);
     }
 }
 
+// Novos endpoints no backend (routes.py)
 async function loadUsers() {
     try {
-        const response = await fetch('/admin/users', {
-            headers: {
-                'Authorization': `Bearer ${authToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
+        const response = await makeAuthenticatedRequest('/admin/users');
         if (response.ok) {
             const data = await response.json();
-            renderUsersTable(data.users);
+            allUsers = data.users;
+            renderUsersTable(allUsers);
         }
     } catch (error) {
         console.error('Erro ao carregar usuários:', error);
-        showToast('Erro ao carregar usuários', 'error');
     }
 }
 
 function renderUsersTable(users) {
     const tbody = document.getElementById('users-table-body');
     tbody.innerHTML = '';
-
+    
     users.forEach(user => {
         const row = document.createElement('tr');
         
         row.innerHTML = `
+            <td><input type="checkbox" class="user-checkbox" data-user-id="${user.id}"></td>
             <td>${user.id}</td>
             <td>${user.email}</td>
             <td>${user.name || 'N/A'}</td>
@@ -176,59 +246,4 @@ function renderUsersTable(users) {
         
         tbody.appendChild(row);
     });
-}
-
-function createUsersChart(usersData) {
-    const ctx = document.getElementById('users-chart').getContext('2d');
-    // Implementar gráfico de crescimento de usuários
-}
-
-function createPlansChart(usersData) {
-    const ctx = document.getElementById('plans-chart').getContext('2d');
-    // Implementar gráfico de distribuição de planos
-}
-
-function logout() {
-    authToken = null;
-    currentAdmin = null;
-    localStorage.removeItem('authToken');
-    window.location.href = '/';
-}
-
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('toast');
-    toast.textContent = message;
-    toast.className = `toast ${type}`;
-    
-    setTimeout(() => {
-        toast.className = 'toast';
-    }, 3000);
-}
-
-// Funções para implementar posteriormente
-function editUser(userId) {
-    showToast('Funcionalidade em desenvolvimento', 'info');
-}
-
-async function toggleUserPremium(userId, makePremium) {
-    try {
-        const response = await fetch(`/admin/user/${userId}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${authToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                is_premium: makePremium
-            })
-        });
-
-        if (response.ok) {
-            showToast(`Usuário ${makePremium ? 'tornado premium' : 'removido do premium'}`, 'success');
-            loadUsers();
-            loadDashboardData();
-        }
-    } catch (error) {
-        showToast('Erro ao atualizar usuário', 'error');
-    }
 }

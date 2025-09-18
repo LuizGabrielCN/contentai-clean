@@ -84,6 +84,84 @@
                 </div>
             </section>
 
+            <div class="admin-grid">
+                <!-- Gestão de Usuários -->
+                <div class="admin-card">
+                    <h3>👥 Gestão de Usuários</h3>
+                    <div class="user-management">
+                        <div class="search-box">
+                            <input type="text" id="user-search" placeholder="🔍 Buscar usuários...">
+                            <select id="user-filter">
+                                <option value="all">Todos</option>
+                                <option value="premium">Premium</option>
+                                <option value="free">Free</option>
+                                <option value="admin">Administradores</option>
+                            </select>
+                        </div>
+                        <div class="users-table-container">
+                            <table class="users-table">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" id="select-all"></th>
+                                        <th>ID</th>
+                                        <th>Email</th>
+                                        <th>Nome</th>
+                                        <th>Plano</th>
+                                        <th>Admin</th>
+                                        <th>Criado em</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-table-body">
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="bulk-actions">
+                            <select id="bulk-action">
+                                <option value="">Ações em massa</option>
+                                <option value="make_premium">Tornar Premium</option>
+                                <option value="remove_premium">Remover Premium</option>
+                                <option value="make_admin">Tornar Admin</option>
+                                <option value="remove_admin">Remover Admin</option>
+                            </select>
+                            <button onclick="applyBulkAction()" class="btn btn-primary">Aplicar</button>
+                        </div>
+                    </div>
+                </div>
+
+    <!-- Estatísticas em Tempo Real -->
+    <div class="admin-card">
+        <h3>📈 Estatísticas em Tempo Real</h3>
+        <div class="real-time-stats">
+            <div class="stat-row">
+                <div class="stat-item">
+                    <span class="stat-label">Usuários Online</span>
+                    <span class="stat-value" id="online-users">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Gerações/Minuto</span>
+                    <span class="stat-value" id="generations-minute">0</span>
+                </div>
+            </div>
+            <div class="stat-charts">
+                <canvas id="activity-chart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Edição de Usuário -->
+<div id="user-edit-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>✏️ Editar Usuário</h3>
+        <div id="user-edit-form">
+            <!-- Form will be loaded here -->
+        </div>
+    </div>
+</div>
+
             <!-- Users Management Tab -->
             <section id="users" class="tab-content">
                 <div class="card">
