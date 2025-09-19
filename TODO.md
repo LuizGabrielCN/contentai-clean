@@ -6,11 +6,11 @@
 
 ## Steps to Fix
 - [x] Add error handling in frontend/admin-dashboard.js for 401/403 responses to redirect to login
-- [ ] Verify login flow sets access_token in localStorage properly
-- [ ] Check admin user status in backend database
-- [ ] Test admin dashboard access with valid admin token
-- [ ] Test with invalid/missing token
-- [ ] Test with non-admin user
+- [x] Verify login flow sets access_token in localStorage properly
+- [x] Check admin user status in backend database
+- [x] Test admin dashboard access with valid admin token
+- [x] Test with invalid/missing token
+- [x] Test with non-admin user
 
 ## Files to Edit
 - frontend/admin-dashboard.js: Add error handling for unauthorized responses
@@ -19,3 +19,4 @@
 ## Followup
 - Test the fix by accessing the admin dashboard URL
 - Ensure proper redirect to login on unauthorized access
+- User needs to login with admin account: lbiel213@gmail.com / petam004

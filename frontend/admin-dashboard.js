@@ -9,7 +9,7 @@ let realTimeData = {
 
 // Função para fazer requisições autenticadas
 async function makeAuthenticatedRequest(url, options = {}) {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('authToken');
     if (!token) {
         window.location.href = '/'; // Redirecionar para login se não autenticado
         return;
@@ -26,7 +26,7 @@ async function makeAuthenticatedRequest(url, options = {}) {
 
     // Redirect to login if unauthorized or forbidden
     if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem('access_token');
+        localStorage.removeItem('authToken');
         window.location.href = '/';
         return;
     }
@@ -324,7 +324,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Função de logout
 function logout() {
-    localStorage.removeItem('access_token');
+    localStorage.removeItem('authToken');
     window.location.href = '/';
 }
 
