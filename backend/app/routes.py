@@ -130,6 +130,37 @@ def register():
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
 
+@main_bp.route('/admin/real-time-stats', methods=['GET'])
+@jwt_required()
+def get_real_time_stats():
+    """Estatísticas em tempo real para admin"""
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if not user or not user.is_admin:
+            return jsonify({"error": "Acesso não autorizado"}), 403
+
+        # Usuários online (login nas últimas 30 min)
+        from datetime import timedelta
+        recent_time = datetime.utcnow() - timedelta(minutes=30)
+        online_users = User.query.filter(User.last_login > recent_time).count()
+
+        # Gerações por minuto (nas últimas 30 min)
+        recent_generations = GenerationHistory.query.filter(GenerationHistory.created_at > recent_time).count()
+        generations_per_minute = round(recent_generations / 30, 2)
+
+        return jsonify({
+            "onlineUsers": online_users,
+            "generationsPerMinute": generations_per_minute,
+            "activeSessions": online_users
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+
+
 @main_bp.route('/api/auth/login', methods=['POST'])
 def login():
     try:

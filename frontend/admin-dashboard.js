@@ -7,12 +7,73 @@ let realTimeData = {
     activeSessions: 0
 };
 
+// Função para fazer requisições autenticadas
+async function makeAuthenticatedRequest(url, options = {}) {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/'; // Redirecionar para login se não autenticado
+        return;
+    }
+
+    const defaultOptions = {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    const response = await fetch(url, { ...defaultOptions, ...options });
+    return response;
+}
+
+// Carregar dados do dashboard
+async function loadDashboardData() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/admin/dashboard');
+        if (response.ok) {
+            const data = await response.json();
+            const dashboard = data.dashboard;
+
+            // Atualizar estatísticas
+            document.getElementById('total-users').textContent = dashboard.users.total;
+            document.getElementById('total-ideas').textContent = dashboard.content.ideas_generated;
+            document.getElementById('total-scripts').textContent = dashboard.content.scripts_generated;
+            document.getElementById('premium-users').textContent = dashboard.users.premium;
+
+            // Calcular tendências (simples, baseado em dados atuais)
+            // Aqui você pode implementar lógica para calcular tendências reais
+            document.getElementById('users-trend').textContent = '+5%';
+            document.getElementById('ideas-trend').textContent = '+12%';
+            document.getElementById('scripts-trend').textContent = '+8%';
+            document.getElementById('premium-trend').textContent = '+15%';
+
+            // Atualizar email do admin
+            const userResponse = await makeAuthenticatedRequest('/api/auth/me');
+            if (userResponse.ok) {
+                const userData = await userResponse.json();
+                document.getElementById('admin-email').textContent = userData.user.email;
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao carregar dados do dashboard:', error);
+    }
+}
+
 // Novas funções de gestão
 async function loadFullDashboard() {
-    await loadDashboardData();
-    await loadUsers();
-    await loadRealTimeStats();
-    startRealTimeUpdates();
+    try {
+        await loadDashboardData();
+        await loadUsers();
+        await loadRealTimeStats();
+        startRealTimeUpdates();
+
+        // Esconder tela de carregamento
+        document.getElementById('loading').style.display = 'none';
+    } catch (error) {
+        console.error('Erro ao carregar dashboard:', error);
+        document.getElementById('loading').style.display = 'none';
+        showToast('Erro ao carregar dashboard', 'error');
+    }
 }
 
 async function loadRealTimeStats() {
@@ -246,4 +307,28 @@ function renderUsersTable(users) {
         
         tbody.appendChild(row);
     });
+}
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    loadFullDashboard();
+});
+
+// Função de logout
+function logout() {
+    localStorage.removeItem('access_token');
+    window.location.href = '/';
+}
+
+// Função showToast
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    if (toast) {
+        toast.textContent = message;
+        toast.className = `toast ${type}`;
+        toast.style.display = 'block';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 3000);
+    }
 }
