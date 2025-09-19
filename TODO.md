@@ -1,15 +1,21 @@
-# TODO: Fix Admin Dashboard Infinite Loading
+# TODO: Fix Admin Dashboard Redirect Issue
 
-## Tasks
-- [ ] Add /admin/real-time-stats endpoint to backend/app/routes.py
-- [ ] Add missing functions to frontend/admin-dashboard.js:
-  - [ ] loadDashboardData()
-  - [ ] makeAuthenticatedRequest()
-  - [ ] Hide loading screen after data load
-  - [ ] Add initialization code
-- [ ] Test the dashboard
+## Current Issue
+- Accessing https://contentai-clean-production.up.railway.app/admin-dashboard.html causes page refresh and redirect to initial page
+- Likely due to missing/invalid access token or non-admin user
 
-## Progress
-- [x] Analyze issue
-- [x] Create plan
-- [x] Get user approval
+## Steps to Fix
+- [x] Add error handling in frontend/admin-dashboard.js for 401/403 responses to redirect to login
+- [ ] Verify login flow sets access_token in localStorage properly
+- [ ] Check admin user status in backend database
+- [ ] Test admin dashboard access with valid admin token
+- [ ] Test with invalid/missing token
+- [ ] Test with non-admin user
+
+## Files to Edit
+- frontend/admin-dashboard.js: Add error handling for unauthorized responses
+- backend/app/routes.py: Verify JWT and admin checks (if needed)
+
+## Followup
+- Test the fix by accessing the admin dashboard URL
+- Ensure proper redirect to login on unauthorized access

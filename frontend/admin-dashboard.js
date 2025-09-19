@@ -23,6 +23,14 @@ async function makeAuthenticatedRequest(url, options = {}) {
     };
 
     const response = await fetch(url, { ...defaultOptions, ...options });
+
+    // Redirect to login if unauthorized or forbidden
+    if (response.status === 401 || response.status === 403) {
+        localStorage.removeItem('access_token');
+        window.location.href = '/';
+        return;
+    }
+
     return response;
 }
 
