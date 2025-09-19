@@ -42,8 +42,15 @@ def create_app():
         return User.query.get(identity)
     
     # ✅ Configuração do Banco de Dados
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///contentai.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:robGUHoHsQbVSQINULmIGJuyDDivpJKd@crossover.proxy.rlwy.net:12218/railway')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+    if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql'):
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            'connect_args': {
+                'sslmode': 'require'
+            }
+    }
     
     # Habilitar CORS para frontend
     CORS(app, origins=[
