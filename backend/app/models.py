@@ -22,11 +22,15 @@ class User(db.Model):
     last_login = db.Column(db.DateTime)
 
     # Campos para reset de senha
-    reset_token = db.Column(db.String(256), unique=True, nullable=True)
+    reset_token = db.Column(db.String(256), nullable=True)
     reset_token_expires = db.Column(db.DateTime, nullable=True)
     
     # Relação com histórico
     generations = db.relationship('GenerationHistory', backref='user', lazy=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('reset_token', name='uq_user_reset_token'),
+    )
     
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
