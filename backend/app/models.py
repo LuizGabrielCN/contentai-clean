@@ -1,11 +1,10 @@
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 from flask_bcrypt import Bcrypt
 from flask import current_app
 import json
 import jwt
+from . import db  # ✅ Importar a instância 'db' de __init__.py
 
-db = SQLAlchemy()
 bcrypt = Bcrypt()
 
 class User(db.Model):
