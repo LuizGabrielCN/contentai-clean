@@ -68,6 +68,7 @@ function updateAuthUI() {
     const userSection = document.getElementById('user-section');
     const userEmail = document.getElementById('user-email');
     const userPlan = document.getElementById('user-plan');
+    const adminBtn = document.getElementById('admin-dashboard-btn');
     
     // ✅ VERIFICAR SE ELEMENTOS EXISTEM ANTES DE USAR
     if (!authSection || !userSection || !userEmail || !userPlan) {
@@ -87,9 +88,18 @@ function updateAuthUI() {
         premiumElements.forEach(el => {
             el.style.display = currentUser.is_premium ? 'block' : 'none';
         });
+
+        // ✅ Mostrar botão de admin se o usuário for admin
+        if (adminBtn) {
+            adminBtn.style.display = currentUser.is_admin ? 'inline-block' : 'none';
+        }
+
     } else {
         authSection.style.display = 'block';
         userSection.style.display = 'none';
+        if (adminBtn) {
+            adminBtn.style.display = 'none';
+        }
     }
 }
 

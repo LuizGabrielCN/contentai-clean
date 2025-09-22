@@ -71,4 +71,10 @@ def create_app(db_instance=None):
     def admin_page():
         return app.send_static_file('admin-dashboard.html')
 
+    # Rota para lidar com a requisição do favicon.ico e evitar erros 404
+    @app.route('/favicon.ico')
+    def favicon():
+        # Retorna uma resposta 204 No Content, que é uma forma limpa de lidar com isso
+        return '', 204
+
     return app, socketio
