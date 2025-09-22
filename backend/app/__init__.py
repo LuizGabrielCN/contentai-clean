@@ -1,13 +1,13 @@
 import os
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+from flask_sqlalchemy import SQLAlchemy, Model
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS  # ✅ Importar o CORS
 from flask_socketio import SocketIO
 from flask_mail import Mail
 from flask_bcrypt import Bcrypt
-
+from sqlalchemy import MetaData
 # Inicializar extensões
 db = SQLAlchemy()
 migrate = Migrate()
@@ -16,10 +16,10 @@ socketio = SocketIO()
 mail = Mail()
 bcrypt = Bcrypt()
 
-def create_app():
+def create_app(db_instance=None):
     """Cria e configura a aplicação Flask."""
     app = Flask(__name__, static_folder='../../frontend', static_url_path='/')
-
+    
     # --- Configurações ---
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'uma-chave-secreta-muito-forte')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
@@ -41,7 +41,10 @@ def create_app():
     print("✅ CORS configurado para permitir todas as origens em /api/*")
 
     # --- Inicializar Extensões ---
-    db.init_app(app)
+    if db_instance:
+        db_instance.init_app(app)
+    else:
+        db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
     bcrypt.init_app(app)
