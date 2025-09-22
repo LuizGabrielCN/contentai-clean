@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HelpubliAI - Criação de Conteúdo com IA</title>
-    
+
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-SEU-ID-AQUI"></script>
     <script>
@@ -14,7 +14,7 @@
       gtag('config', 'G-SEU-ID-AQUI');
       console.log('Google Analytics loaded');
     </script>
-    
+
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -42,7 +42,7 @@
                 <button id="login-btn" class="btn btn-outline">Entrar</button>
                <button id="register-btn" class="btn btn-primary">Criar Conta</button>
             </div>
-        
+
             <div class="user-section" id="user-section" style="display: none;">
                 <div class="user-info" id="user-info">
                             <span id="user-email"></span>
@@ -166,7 +166,7 @@
         </div>
         <button onclick="login()" class="btn btn-primary">Entrar</button>
         <p style="text-align: center; margin-top: 10px;">
-            <a href="#" style="color: var(--primary);">Esqueci minha senha</a>
+            <a href="#" id="forgot-password-link" style="color: var(--primary);">Esqueci minha senha</a>
         </p>
     </div>
 </div>
@@ -178,22 +178,71 @@
         <h3>🚀 Criar Conta</h3>
         <input type="text" id="register-name" placeholder="Nome completo">
         <input type="email" id="register-email" placeholder="Email">
-        
+
         <div style="position: relative;">
             <input type="password" id="register-password" placeholder="Senha">
             <span id="register-eye" class="password-toggle" onclick="togglePasswordVisibility('register-password', 'register-eye')">👁️</span>
         </div>
-        
+
         <div style="position: relative;">
             <input type="password" id="register-confirm-password" placeholder="Confirmar senha">
             <span id="register-confirm-eye" class="password-toggle" onclick="togglePasswordVisibility('register-confirm-password', 'register-confirm-eye')">👁️</span>
         </div>
-        
+
         <div id="password-error" style="color: var(--danger); font-size: 0.9rem; display: none; margin-bottom: 1rem;">
             As senhas não coincidem!
         </div>
-        
+
         <button onclick="register()" class="btn btn-primary">Criar Conta</button>
+    </div>
+</div>
+
+<!-- ✅ MODAL ESQUECI MINHA SENHA -->
+<div id="forgot-password-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>🔑 Esqueci minha senha</h3>
+        <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+            Digite seu email e enviaremos instruções para resetar sua senha.
+        </p>
+        <input type="email" id="forgot-email" placeholder="Seu email" required>
+        <button onclick="forgotPassword()" class="btn btn-primary">
+            <span class="btn-text">Enviar instruções</span>
+            <span class="btn-loading" style="display: none;">Enviando...</span>
+        </button>
+        <p style="text-align: center; margin-top: 10px;">
+            <a href="#" onclick="showLoginModal()" style="color: var(--text-secondary); font-size: 0.9rem;">Voltar ao login</a>
+        </p>
+    </div>
+</div>
+
+<!-- ✅ MODAL RESETAR SENHA -->
+<div id="reset-password-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>🔑 Nova senha</h3>
+        <p style="margin-bottom: 1rem; color: var(--text-secondary);">
+            Digite sua nova senha.
+        </p>
+
+        <div style="position: relative; margin-bottom: 1rem;">
+            <input type="password" id="reset-password" placeholder="Nova senha" required>
+            <span id="reset-eye" class="password-toggle" onclick="togglePasswordVisibility('reset-password', 'reset-eye')">👁️</span>
+        </div>
+
+        <div style="position: relative; margin-bottom: 1rem;">
+            <input type="password" id="reset-confirm-password" placeholder="Confirmar nova senha" required>
+            <span id="reset-confirm-eye" class="password-toggle" onclick="togglePasswordVisibility('reset-confirm-password', 'reset-confirm-eye')">👁️</span>
+        </div>
+
+        <div id="reset-password-error" style="color: var(--danger); font-size: 0.9rem; display: none; margin-bottom: 1rem;">
+            As senhas não coincidem!
+        </div>
+
+        <button onclick="resetPassword()" class="btn btn-primary">
+            <span class="btn-text">Resetar senha</span>
+            <span class="btn-loading" style="display: none;">Resetando...</span>
+        </button>
     </div>
 </div>
 

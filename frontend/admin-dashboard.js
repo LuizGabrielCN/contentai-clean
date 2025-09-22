@@ -111,12 +111,22 @@ function startRealTimeUpdates() {
 
 function setupWebSocketConnection() {
     // Implementar WebSocket para updates em tempo real
-    const ws = new WebSocket(`wss://${window.location.host}/admin-ws`);
+    // A biblioteca do Socket.IO lida com o protocolo (ws/wss) automaticamente
+    const socket = io({
+        transports: ['websocket'] // Forçar o uso de WebSockets
+    });
     
-    ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
+    socket.on('connect', () => {
+        console.log('✅ Conectado ao WebSocket');
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            socket.emit('join_admin', { token: token });
+        }
+    });
+
+    socket.on('stats_update', (data) => {
         handleRealTimeUpdate(data);
-    };
+    });
 }
 
 function handleRealTimeUpdate(data) {

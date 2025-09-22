@@ -1,11 +1,13 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask_socketio import emit, join_room, leave_room
+from flask_mail import Message
 from app.services.ai_service import ai_service
 from app.models import db, GenerationHistory, UserFeedback, AppStatistics, User, bcrypt
 from datetime import datetime, date
 import json
 from functools import lru_cache
+import os
 import threading
 import time
 from email_validator import validate_email, EmailNotValidError
@@ -181,7 +183,7 @@ def login():
         db.session.commit()
         
         # ✅ GARANTIR que identity é o ID (integer)
-        access_token = create_access_token(identity=str(user.id))  # Converter para string
+        access_token = create_access_token(identity=user.id)
         
         return jsonify({
             "status": "success",
@@ -190,6 +192,103 @@ def login():
             "user": user.to_dict()
         })
         
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+@main_bp.route('/api/auth/forgot-password', methods=['POST'])
+def forgot_password():
+    """Solicitar reset de senha"""
+    try:
+        data = request.get_json()
+        if not data or 'email' not in data:
+            return jsonify({"error": "Email é obrigatório"}), 400
+
+        email = data['email']
+        try:
+            valid = validate_email(email, check_deliverability=False)
+            email = valid.email
+        except EmailNotValidError:
+            return jsonify({"error": "Email inválido"}), 400
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            # Por segurança, não informar se o email existe ou não
+            return jsonify({"status": "success", "message": "Se o email estiver cadastrado, você receberá instruções."}), 200
+
+        reset_token = user.generate_reset_token()
+        db.session.commit()
+
+        # Enviar email
+        mail = current_app.extensions.get('mail')
+        if mail:
+            # A URL do frontend deve ser configurável
+            frontend_url = os.environ.get('FRONTEND_URL', 'http://127.0.0.1:8000')
+            reset_url = f"{frontend_url}/reset-password.html?token={reset_token}"
+            
+            msg = Message(
+                subject="Reset de Senha - HelpubliAI",
+                recipients=[user.email],
+                body=f"Olá {user.name or 'usuário'},\n\nPara resetar sua senha, clique no link: {reset_url}\n\nEste link expira em 1 hora.",
+                html=f"""
+                <html><body>
+                    <h2>Reset de Senha - HelpubliAI</h2>
+                    <p>Olá {user.name or 'usuário'},</p>
+                    <p>Você solicitou um reset de senha. Clique no botão abaixo para criar uma nova senha:</p>
+                    <p><a href="{reset_url}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Resetar Senha</a></p>
+                    <p><small>Este link expira em 1 hora.</small></p>
+                </body></html>
+                """
+            )
+            try:
+                mail.send(msg)
+                print(f"✅ Email de reset enviado para {user.email}")
+            except Exception as e:
+                print(f"⚠️ Erro ao enviar email: {str(e)}")
+                # Não falhar a requisição se o email não puder ser enviado
+        else:
+            print("⚠️ Flask-Mail não configurado - email não enviado")
+
+        return jsonify({"status": "success", "message": "Se o email estiver cadastrado, você receberá instruções."}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+@main_bp.route('/api/auth/reset-password', methods=['POST'])
+def reset_password():
+    """Resetar senha com token"""
+    try:
+        data = request.get_json()
+        if not data or 'token' not in data or 'password' not in data:
+            return jsonify({"error": "Token e nova senha são obrigatórios"}), 400
+
+        token = data['token']
+        new_password = data['password']
+
+        if len(new_password) < 6:
+            return jsonify({"error": "A senha deve ter pelo menos 6 caracteres"}), 400
+
+        user = User.verify_reset_token(token)
+
+        if not user:
+            return jsonify({"error": "Token inválido ou expirado"}), 400
+
+        # Atualizar senha e limpar token
+        user.set_password(new_password)
+        user.reset_token = None
+        user.reset_token_expires = None
+        user.last_login = datetime.utcnow()
+        db.session.commit()
+
+        # Criar novo token de acesso para login automático
+        access_token = create_access_token(identity=user.id)
+
+        return jsonify({
+            "status": "success",
+            "message": "Senha resetada com sucesso",
+            "access_token": access_token,
+            "user": user.to_dict()
+        }), 200
+
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
 
@@ -495,33 +594,6 @@ def cache_stats():
         "script_cache_misses": generate_script_cached.cache_info().misses
     })
 
-@main_bp.route('/emergency/make-admin', methods=['POST'])
-def emergency_make_admin():
-    """Rota de emergência para tornar usuário em admin"""
-    try:
-        data = request.get_json()
-        email = data.get('email')
-
-        if not email:
-            return jsonify({"error": "Email é obrigatório"}), 400
-
-        user = User.query.filter_by(email=email).first()
-        if not user:
-            return jsonify({"error": "Usuário não encontrado"}), 404
-
-        user.is_admin = True
-        user.is_premium = True
-        db.session.commit()
-
-        return jsonify({
-            "status": "success",
-            "message": f"Usuário {email} agora é administrador",
-            "user": user.to_dict()
-        })
-
-    except Exception as e:
-        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
-    
 @main_bp.route('/admin/users', methods=['GET'])
 @jwt_required()
 def get_all_users():
@@ -787,4 +859,3 @@ def broadcast_new_user(socketio, user_data):
     """Broadcast de novo usuário"""
     socketio.emit('new_user', user_data, room='admin_room')
     
-

@@ -1,14 +1,17 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask_bcrypt import Bcrypt
+from flask import current_app
 import json
+import jwt
 
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 
 class User(db.Model):
     __tablename__ = 'users'
-    
+
+    # ... (campos existentes)
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
@@ -17,6 +20,10 @@ class User(db.Model):
     is_premium = db.Column(db.Boolean, default=False)
     is_admin = db.Column(db.Boolean, default=False)
     last_login = db.Column(db.DateTime)
+
+    # Campos para reset de senha
+    reset_token = db.Column(db.String(256), unique=True, nullable=True)
+    reset_token_expires = db.Column(db.DateTime, nullable=True)
     
     # Relação com histórico
     generations = db.relationship('GenerationHistory', backref='user', lazy=True)
@@ -26,6 +33,26 @@ class User(db.Model):
     
     def check_password(self, password):
         return bcrypt.check_password_hash(self.password_hash, password)
+
+    def generate_reset_token(self):
+        """Gera um token de reset de senha seguro e com tempo de expiração."""
+        secret_key = current_app.config['SECRET_KEY']
+        payload = {
+            'user_id': self.id,
+            'exp': datetime.utcnow() + timedelta(hours=1)  # Expira em 1 hora
+        }
+        self.reset_token = jwt.encode(payload, secret_key, algorithm='HS256')
+        self.reset_token_expires = payload['exp']
+        return self.reset_token
+
+    @staticmethod
+    def verify_reset_token(token):
+        """Verifica o token de reset e retorna o usuário se for válido."""
+        secret_key = current_app.config['SECRET_KEY']
+        user = User.query.filter_by(reset_token=token).first()
+        if user and user.reset_token_expires > datetime.utcnow():
+            return user
+        return None
     
     def to_dict(self):
         return {

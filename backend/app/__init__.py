@@ -53,7 +53,7 @@ def create_app():
 
     # ✅ Inicializar SocketIO com a app
     socketio.init_app(app)
-    
+
     # ✅ Configuração do Banco de Dados
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:RiTbpZhNlEeGlXhbtXuigVwhgTGmtefy@turntable.proxy.rlwy.net:33008/railway')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -64,11 +64,11 @@ def create_app():
                 'sslmode': 'require'
             }
     }
-    
+
     # Habilitar CORS para frontend
     CORS(app, origins=[
-        "http://localhost:5000", 
-        "http://127.0.0.1:5000", 
+        "http://localhost:5000",
+        "http://127.0.0.1:5000",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
         "contentai-clean-production.up.railway.app"
@@ -77,7 +77,7 @@ def create_app():
     # ✅ Inicializar Banco de Dados
     from app.models import db
     db.init_app(app)
-    
+
     # ✅ Importar Migrate
     try:
         from flask_migrate import Migrate
@@ -86,11 +86,29 @@ def create_app():
     except ImportError:
         print("⚠️  Flask-Migrate não instalado (modo sem migrações)")
         migrate = None
-    
+
     # ✅ Inicializar Bcrypt
     from app.models import bcrypt
     bcrypt.init_app(app)
-    
+
+    # ✅ CONFIGURAÇÃO DE EMAIL PARA RESET DE SENHA
+    app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+    app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+    app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
+    app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'False').lower() == 'true'
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+    app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@helpubli.com')
+
+    # ✅ Inicializar Flask-Mail
+    try:
+        from flask_mail import Mail
+        mail = Mail(app)
+        print("✅ Flask-Mail configurado para envio de emails")
+    except ImportError:
+        print("⚠️  Flask-Mail não instalado (emails não funcionam)")
+        mail = None
+
     # ✅ Criar tabelas se não existirem
     with app.app_context():
         db.create_all()
@@ -111,11 +129,12 @@ def create_app():
     # ✅ Inicializar SocketIO events
     from app.routes import init_socketio
     init_socketio(socketio)
-    
+
     print("✅ Aplicação Flask configurada com sucesso!")
     print("🔧 Modo:", "Desenvolvimento" if os.environ.get('FLASK_ENV') == 'development' else "Produção")
     print("🗄️  Banco de dados:", app.config['SQLALCHEMY_DATABASE_URI'])
     print("🔐 JWT Configurado:", app.config['JWT_SECRET_KEY'] is not None)
     print("🔌 WebSocket Configurado:", True)
+    print("📧 Email Configurado:", mail is not None)
 
     return app, socketio
