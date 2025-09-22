@@ -244,12 +244,12 @@ def forgot_password():
             )
             try:
                 mail.send(msg)
-                print(f"✅ Email de reset enviado para {user.email}")
+                current_app.logger.info(f"✅ Email de reset enviado para {user.email}")
             except Exception as e:
-                print(f"⚠️ Erro ao enviar email: {str(e)}")
-                # Não falhar a requisição se o email não puder ser enviado
+                current_app.logger.error(f"⚠️ Erro ao enviar email de reset de senha: {str(e)}")
+                # A requisição não deve falhar para o usuário, mas logamos o erro.
         else:
-            print("⚠️ Flask-Mail não configurado - email não enviado")
+            current_app.logger.warning("⚠️ Flask-Mail não configurado - email de reset de senha não foi enviado.")
 
         return jsonify({"status": "success", "message": "Se o email estiver cadastrado, você receberá instruções."}), 200
 
