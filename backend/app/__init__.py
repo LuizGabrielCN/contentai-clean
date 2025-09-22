@@ -1,144 +1,71 @@
-from flask import Flask
-from flask_cors import CORS
-from flask_jwt_extended import JWTManager
-from flask_socketio import SocketIO
 import os
-import secrets
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
+from flask_cors import CORS  # ✅ Importar o CORS
+from flask_socketio import SocketIO
+from flask_mail import Mail
+from flask_bcrypt import Bcrypt
 
-# ✅ Inicializar SocketIO globalmente
-socketio = SocketIO(cors_allowed_origins=[
-    "http://localhost:5000",
-    "http://127.0.0.1:5000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-    "contentai-clean-production.up.railway.app"
-])
+# Inicializar extensões
+db = SQLAlchemy()
+migrate = Migrate()
+jwt = JWTManager()
+socketio = SocketIO()
+mail = Mail()
+bcrypt = Bcrypt()
 
 def create_app():
-    app = Flask(__name__)
+    """Cria e configura a aplicação Flask."""
+    app = Flask(__name__, static_folder='../../frontend', static_url_path='/')
 
-    # Configurações básicas
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or secrets.token_hex(16)
-    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or secrets.token_hex(32)
-    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 3600  # 1 hora
-    app.config['JWT_TOKEN_LOCATION'] = ['headers']
-    app.config['JWT_HEADER_NAME'] = 'Authorization'
-    app.config['JWT_HEADER_TYPE'] = 'Bearer'
-    app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
-    app.config['JSON_SORT_KEYS'] = False
-
-
-    # ✅ CONFIGURAÇÃO CRÍTICA: Permitir integer como subject
-    app.config['JWT_IDENTITY_CLAIM'] = 'sub'  # Garantir que usa 'sub' claim
-    app.config['JWT_ALGORITHM'] = 'HS256'     # Definir algoritmo explicitamente
-
-    # ✅ Configuração JWT
-    jwt = JWTManager(app)
-
-    @jwt.user_identity_loader
-    def user_identity_lookup(user):
-        # user já deve ser o ID (integer) do usuário
-        if isinstance(user, int):
-            return user
-        elif hasattr(user, 'id'):
-            return user.id
-        else:
-            return str(user)  # Fallback seguro
-
-    @jwt.user_lookup_loader
-    def user_lookup_callback(_jwt_header, jwt_data):
-        from app.models import User
-        identity = jwt_data["sub"]
-        return User.query.get(identity)
-
-    # ✅ Inicializar SocketIO com a app
-    socketio.init_app(app)
-
-    # ✅ Configuração do Banco de Dados
-    database_url = os.environ.get('DATABASE_URL')
-    if not database_url:
-        raise RuntimeError("FATAL: A variável de ambiente DATABASE_URL não está configurada.")
-    
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    # --- Configurações ---
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'uma-chave-secreta-muito-forte')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'outra-chave-secreta-jwt')
 
-    if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql'):
-        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            'connect_args': {
-                'sslmode': 'require'
-            }
-    }
-
-    # Habilitar CORS para frontend
-    CORS(app, origins=[
-        "http://localhost:5000",
-        "http://127.0.0.1:5000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "contentai-clean-production.up.railway.app"
-    ])
-
-    # ✅ Inicializar Banco de Dados
-    from app.models import db
-    db.init_app(app)
-
-    # ✅ Importar Migrate
-    try:
-        from flask_migrate import Migrate
-        migrate = Migrate(app, db)
-        print("✅ Flask-Migrate configurado")
-    except ImportError:
-        print("⚠️  Flask-Migrate não instalado (modo sem migrações)")
-        migrate = None
-
-    # ✅ Inicializar Bcrypt
-    from app.models import bcrypt
-    bcrypt.init_app(app)
-
-    # ✅ CONFIGURAÇÃO DE EMAIL PARA RESET DE SENHA
+    # Configuração do Flask-Mail
     app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-    app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
-    app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'False').lower() == 'true'
+    app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', '1', 't']
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-    app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'noreply@helpubli.com')
+    app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', app.config['MAIL_USERNAME'])
 
-    # ✅ Inicializar Flask-Mail
-    try:
-        from flask_mail import Mail
-        mail = Mail(app)
-        print("✅ Flask-Mail configurado para envio de emails")
-    except ImportError:
-        print("⚠️  Flask-Mail não instalado (emails não funcionam)")
-        mail = None
+    # ✅ --- Configuração do CORS ---
+    # Permite que todas as origens acessem a API. Para produção, você pode restringir
+    # para o domínio do seu frontend, ex: CORS(app, origins="https://seu-dominio.com")
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    print("✅ CORS configurado para permitir todas as origens em /api/*")
 
-    # ✅ Criar tabelas se não existirem
-    with app.app_context():
-        db.create_all()
-        from app.models import AppStatistics
-        if not AppStatistics.query.first():
-            stats = AppStatistics()
-            db.session.add(stats)
-            db.session.commit()
-
-    # Registrar blueprints (rotas)
-    from app.routes import main_bp
+    # --- Inicializar Extensões ---
+    db.init_app(app)
+    migrate.init_app(app, db)
+    jwt.init_app(app)
+    bcrypt.init_app(app)
+    mail.init_app(app)
+    
+    # Importar e registrar Blueprints (rotas)
+    from .routes import main_bp, init_socketio, init_cache_cleaner
     app.register_blueprint(main_bp)
 
-    # ✅ Inicializar limpeza de cache
-    from app.routes import init_cache_cleaner
+    # Inicializar SocketIO com CORS permitido para todas as origens
+    socketio.init_app(app, cors_allowed_origins="*")
+    init_socketio(socketio)
+    print("✅ WebSocket (SocketIO) configurado com CORS")
+
+    # Inicializar limpeza de cache
     init_cache_cleaner(app)
 
-    # ✅ Inicializar SocketIO events
-    from app.routes import init_socketio
-    init_socketio(socketio)
+    # Rota para servir o index.html
+    @app.route('/')
+    def index():
+        return app.send_static_file('index.html')
 
-    print("✅ Aplicação Flask configurada com sucesso!")
-    print("🔧 Modo:", "Desenvolvimento" if os.environ.get('FLASK_ENV') == 'development' else "Produção")
-    print("🗄️  Banco de dados:", app.config['SQLALCHEMY_DATABASE_URI'])
-    print("🔐 JWT Configurado:", app.config['JWT_SECRET_KEY'] is not None)
-    print("🔌 WebSocket Configurado:", True)
-    print("📧 Email Configurado:", mail is not None)
+    @app.route('/admin')
+    def admin_page():
+        return app.send_static_file('admin-dashboard.html')
 
-    return app, socketio
+    return app
