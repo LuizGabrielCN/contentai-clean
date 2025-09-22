@@ -68,4 +68,4 @@ def create_app():
     def admin_page():
         return app.send_static_file('admin-dashboard.html')
 
-    return app
+    return app, socketio
