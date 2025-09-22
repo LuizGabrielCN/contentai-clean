@@ -1,12 +1,22 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_socketio import SocketIO
 import os
 import secrets
 
+# ✅ Inicializar SocketIO globalmente
+socketio = SocketIO(cors_allowed_origins=[
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "contentai-clean-production.up.railway.app"
+])
+
 def create_app():
     app = Flask(__name__)
-    
+
     # Configurações básicas
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or secrets.token_hex(16)
     app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or secrets.token_hex(32)
@@ -16,15 +26,15 @@ def create_app():
     app.config['JWT_HEADER_TYPE'] = 'Bearer'
     app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
     app.config['JSON_SORT_KEYS'] = False
-    
-    
+
+
     # ✅ CONFIGURAÇÃO CRÍTICA: Permitir integer como subject
     app.config['JWT_IDENTITY_CLAIM'] = 'sub'  # Garantir que usa 'sub' claim
     app.config['JWT_ALGORITHM'] = 'HS256'     # Definir algoritmo explicitamente
-    
+
     # ✅ Configuração JWT
     jwt = JWTManager(app)
-    
+
     @jwt.user_identity_loader
     def user_identity_lookup(user):
         # user já deve ser o ID (integer) do usuário
@@ -34,12 +44,15 @@ def create_app():
             return user.id
         else:
             return str(user)  # Fallback seguro
-    
+
     @jwt.user_lookup_loader
     def user_lookup_callback(_jwt_header, jwt_data):
         from app.models import User
         identity = jwt_data["sub"]
         return User.query.get(identity)
+
+    # ✅ Inicializar SocketIO com a app
+    socketio.init_app(app)
     
     # ✅ Configuração do Banco de Dados
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:RiTbpZhNlEeGlXhbtXuigVwhgTGmtefy@turntable.proxy.rlwy.net:33008/railway')
@@ -90,14 +103,19 @@ def create_app():
     # Registrar blueprints (rotas)
     from app.routes import main_bp
     app.register_blueprint(main_bp)
-    
+
     # ✅ Inicializar limpeza de cache
     from app.routes import init_cache_cleaner
     init_cache_cleaner(app)
+
+    # ✅ Inicializar SocketIO events
+    from app.routes import init_socketio
+    init_socketio(socketio)
     
     print("✅ Aplicação Flask configurada com sucesso!")
     print("🔧 Modo:", "Desenvolvimento" if os.environ.get('FLASK_ENV') == 'development' else "Produção")
     print("🗄️  Banco de dados:", app.config['SQLALCHEMY_DATABASE_URI'])
     print("🔐 JWT Configurado:", app.config['JWT_SECRET_KEY'] is not None)
-    
-    return app
+    print("🔌 WebSocket Configurado:", True)
+
+    return app, socketio

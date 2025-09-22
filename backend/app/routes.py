@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_socketio import emit, join_room, leave_room
 from app.services.ai_service import ai_service
 from app.models import db, GenerationHistory, UserFeedback, AppStatistics, User, bcrypt
 from datetime import datetime, date
@@ -135,7 +136,7 @@ def register():
 def get_real_time_stats():
     """Estatísticas em tempo real para admin"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         user = User.query.get(user_id)
 
         if not user or not user.is_admin:
@@ -500,24 +501,24 @@ def emergency_make_admin():
     try:
         data = request.get_json()
         email = data.get('email')
-        
+
         if not email:
             return jsonify({"error": "Email é obrigatório"}), 400
-        
+
         user = User.query.filter_by(email=email).first()
         if not user:
             return jsonify({"error": "Usuário não encontrado"}), 404
-        
+
         user.is_admin = True
         user.is_premium = True
         db.session.commit()
-        
+
         return jsonify({
-            "status": "success", 
+            "status": "success",
             "message": f"Usuário {email} agora é administrador",
             "user": user.to_dict()
         })
-        
+
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
     
@@ -548,28 +549,65 @@ def update_user(user_id):
     try:
         admin_id = get_jwt_identity()
         admin = User.query.get(admin_id)
-        
+
         if not admin or not admin.is_admin:
             return jsonify({"error": "Acesso não autorizado"}), 403
-        
+
         user = User.query.get(user_id)
         if not user:
             return jsonify({"error": "Usuário não encontrado"}), 404
-        
+
         data = request.get_json()
         if 'is_premium' in data:
             user.is_premium = data['is_premium']
         if 'is_admin' in data:
             user.is_admin = data['is_admin']
-        
+
         db.session.commit()
-        
+
         return jsonify({
             "status": "success",
             "message": "Usuário atualizado",
             "user": user.to_dict()
         })
-        
+
+    except Exception as e:
+        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+@main_bp.route('/admin/user/<int:user_id>', methods=['DELETE'])
+@jwt_required()
+def delete_user(user_id):
+    """Excluir usuário (apenas admin)"""
+    try:
+        admin_id = get_jwt_identity()
+        admin = User.query.get(admin_id)
+
+        if not admin or not admin.is_admin:
+            return jsonify({"error": "Acesso não autorizado"}), 403
+
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "Usuário não encontrado"}), 404
+
+        # Não permitir excluir o próprio usuário admin
+        if user.id == admin_id:
+            return jsonify({"error": "Não é possível excluir o próprio usuário"}), 400
+
+        # Excluir histórico de gerações do usuário
+        GenerationHistory.query.filter_by(user_id=user_id).delete()
+
+        # Excluir feedback do usuário
+        UserFeedback.query.filter_by(user_id=user_id).delete()
+
+        # Excluir o usuário
+        db.session.delete(user)
+        db.session.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": "Usuário excluído com sucesso"
+        })
+
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
     
@@ -578,7 +616,7 @@ def update_user(user_id):
 def admin_dashboard():
     """Dashboard administrativo"""
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         user = User.query.get(user_id)
         
         if not user or not user.is_admin:
@@ -617,7 +655,7 @@ def admin_dashboard():
 def get_user(user_id):
     """Obter dados de um usuário específico"""
     try:
-        admin_id = get_jwt_identity()
+        admin_id = int(get_jwt_identity())
         admin = User.query.get(admin_id)
         
         if not admin or not admin.is_admin:
@@ -631,8 +669,122 @@ def get_user(user_id):
         
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
-        
+
+# ======================
+# WEB SOCKET EVENTS
+# ======================
+
+def init_socketio(socketio):
+    """Inicializar eventos WebSocket"""
+
+    @socketio.on('connect')
+    def handle_connect():
+        print('Cliente conectado ao WebSocket')
+        emit('connected', {'status': 'success'})
+
+    @socketio.on('disconnect')
+    def handle_disconnect():
+        print('Cliente desconectado do WebSocket')
+
+    @socketio.on('join_admin')
+    def handle_join_admin(data):
+        """Admin se junta à sala de administração"""
+        try:
+            token = data.get('token')
+            if not token:
+                emit('error', {'message': 'Token não fornecido'})
+                return
+
+            # Verificar se é admin
+            from flask_jwt_extended import decode_token
+            decoded = decode_token(token)
+            user_id = decoded['sub']
+            user = User.query.get(user_id)
+
+            if user and user.is_admin:
+                join_room('admin_room')
+                emit('joined_admin', {'status': 'success'})
+                print(f'Admin {user.email} entrou na sala admin')
+            else:
+                emit('error', {'message': 'Acesso não autorizado'})
+
+        except Exception as e:
+            emit('error', {'message': f'Erro: {str(e)}'})
+
+    @socketio.on('leave_admin')
+    def handle_leave_admin():
+        leave_room('admin_room')
+        emit('left_admin', {'status': 'success'})
+
+    @socketio.on('request_stats')
+    def handle_request_stats():
+        """Enviar estatísticas em tempo real para admin"""
+        try:
+            # Usuários online (login nas últimas 30 min)
+            from datetime import timedelta
+            recent_time = datetime.utcnow() - timedelta(minutes=30)
+            online_users = User.query.filter(User.last_login > recent_time).count()
+
+            # Gerações por minuto (nas últimas 30 min)
+            recent_generations = GenerationHistory.query.filter(GenerationHistory.created_at > recent_time).count()
+            generations_per_minute = round(recent_generations / 30, 2)
+
+            # Estatísticas gerais
+            total_users = User.query.count()
+            premium_users = User.query.filter_by(is_premium=True).count()
+            total_ideas = GenerationHistory.query.filter_by(type='ideas').count()
+            total_scripts = GenerationHistory.query.filter_by(type='script').count()
+
+            emit('stats_update', {
+                'onlineUsers': online_users,
+                'generationsPerMinute': generations_per_minute,
+                'totalUsers': total_users,
+                'premiumUsers': premium_users,
+                'totalIdeas': total_ideas,
+                'totalScripts': total_scripts,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+
+        except Exception as e:
+            emit('error', {'message': f'Erro ao obter estatísticas: {str(e)}'})
+
+def broadcast_stats_update(socketio):
+    """Função para broadcast de atualizações de estatísticas"""
+    try:
+        # Usuários online (login nas últimas 30 min)
+        from datetime import timedelta
+        recent_time = datetime.utcnow() - timedelta(minutes=30)
+        online_users = User.query.filter(User.last_login > recent_time).count()
+
+        # Gerações por minuto (nas últimas 30 min)
+        recent_generations = GenerationHistory.query.filter(GenerationHistory.created_at > recent_time).count()
+        generations_per_minute = round(recent_generations / 30, 2)
+
+        # Estatísticas gerais
+        total_users = User.query.count()
+        premium_users = User.query.filter_by(is_premium=True).count()
+        total_ideas = GenerationHistory.query.filter_by(type='ideas').count()
+        total_scripts = GenerationHistory.query.filter_by(type='script').count()
+
+        socketio.emit('stats_update', {
+            'onlineUsers': online_users,
+            'generationsPerMinute': generations_per_minute,
+            'totalUsers': total_users,
+            'premiumUsers': premium_users,
+            'totalIdeas': total_ideas,
+            'totalScripts': total_scripts,
+            'timestamp': datetime.utcnow().isoformat()
+        }, room='admin_room')
+
     except Exception as e:
-        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+        print(f'Erro ao broadcast estatísticas: {str(e)}')
+
+def broadcast_user_update(socketio, user_data):
+    """Broadcast de atualização de usuário"""
+    socketio.emit('user_update', user_data, room='admin_room')
+
+def broadcast_new_user(socketio, user_data):
+    """Broadcast de novo usuário"""
+    socketio.emit('new_user', user_data, room='admin_room')
     
 

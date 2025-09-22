@@ -306,10 +306,11 @@ function renderUsersTable(users) {
             <td>${new Date(user.created_at).toLocaleDateString('pt-BR')}</td>
             <td>
                 <button onclick="editUser(${user.id})" class="btn-sm btn-outline">Editar</button>
-                <button onclick="toggleUserPremium(${user.id}, ${!user.is_premium})" 
+                <button onclick="toggleUserPremium(${user.id}, ${!user.is_premium})"
                         class="btn-sm ${user.is_premium ? 'btn-warning' : 'btn-success'}">
                     ${user.is_premium ? 'Remover Premium' : 'Tornar Premium'}
                 </button>
+                <button onclick="confirmDeleteUser(${user.id}, '${user.email}')" class="btn-sm btn-danger">Excluir</button>
             </td>
         `;
         
@@ -328,15 +329,149 @@ function logout() {
     window.location.href = '/';
 }
 
-// Função showToast
-function showToast(message, type = 'info') {
-    const toast = document.getElementById('toast');
-    if (toast) {
-        toast.textContent = message;
-        toast.className = `toast ${type}`;
-        toast.style.display = 'block';
-        setTimeout(() => {
-            toast.style.display = 'none';
-        }, 3000);
+// Função de confirmação de exclusão
+function confirmDeleteUser(userId, userEmail) {
+    if (confirm(`Tem certeza que deseja excluir o usuário ${userEmail}? Esta ação não pode ser desfeita.`)) {
+        deleteUser(userId);
+    }
+}
+
+// Função para excluir usuário
+async function deleteUser(userId) {
+    try {
+        const response = await makeAuthenticatedRequest(`/admin/user/${userId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            showToast('Usuário excluído com sucesso!', 'success');
+            loadUsers(); // Recarregar lista de usuários
+        } else {
+            const error = await response.json();
+            showToast(error.error || 'Erro ao excluir usuário', 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao excluir usuário:', error);
+        showToast('Erro ao excluir usuário', 'error');
+    }
+}
+
+// Função para renderizar gráficos com Chart.js
+let usersChart = null;
+let plansChart = null;
+
+function renderCharts(dashboard) {
+    // Dados para gráfico de crescimento de usuários (exemplo simples)
+    const userGrowthData = {
+        labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul'],
+        datasets: [{
+            label: 'Usuários',
+            data: [10, 20, 30, 40, 50, 60, dashboard.users.total],
+            borderColor: 'rgba(67, 97, 238, 1)',
+            backgroundColor: 'rgba(67, 97, 238, 0.2)',
+            fill: true,
+            tension: 0.3
+        }]
+    };
+
+    // Configuração do gráfico de crescimento de usuários
+    const userGrowthConfig = {
+        type: 'line',
+        data: userGrowthData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true },
+                tooltip: { enabled: true }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    };
+
+    // Dados para gráfico de distribuição de planos
+    const planDistributionData = {
+        labels: ['Premium', 'Free'],
+        datasets: [{
+            label: 'Usuários',
+            data: [dashboard.users.premium, dashboard.users.total - dashboard.users.premium],
+            backgroundColor: [
+                'rgba(76, 201, 240, 0.7)',
+                'rgba(108, 117, 125, 0.7)'
+            ],
+            borderColor: [
+                'rgba(76, 201, 240, 1)',
+                'rgba(108, 117, 125, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
+
+    // Configuração do gráfico de distribuição de planos
+    const planDistributionConfig = {
+        type: 'doughnut',
+        data: planDistributionData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                tooltip: { enabled: true }
+            }
+        }
+    };
+
+    // Renderizar ou atualizar gráfico de crescimento de usuários
+    const usersCtx = document.getElementById('users-chart').getContext('2d');
+    if (usersChart) {
+        usersChart.data = userGrowthData;
+        usersChart.update();
+    } else {
+        usersChart = new Chart(usersCtx, userGrowthConfig);
+    }
+
+    // Renderizar ou atualizar gráfico de distribuição de planos
+    const plansCtx = document.getElementById('plans-chart').getContext('2d');
+    if (plansChart) {
+        plansChart.data = planDistributionData;
+        plansChart.update();
+    } else {
+        plansChart = new Chart(plansCtx, planDistributionConfig);
+    }
+}
+
+// Atualizar loadDashboardData para chamar renderCharts
+async function loadDashboardData() {
+    try {
+        const response = await makeAuthenticatedRequest('/api/admin/dashboard');
+        if (response.ok) {
+            const data = await response.json();
+            const dashboard = data.dashboard;
+
+            // Atualizar estatísticas
+            document.getElementById('total-users').textContent = dashboard.users.total;
+            document.getElementById('total-ideas').textContent = dashboard.content.ideas_generated;
+            document.getElementById('total-scripts').textContent = dashboard.content.scripts_generated;
+            document.getElementById('premium-users').textContent = dashboard.users.premium;
+
+            // Calcular tendências (simples, baseado em dados atuais)
+            // Aqui você pode implementar lógica para calcular tendências reais
+            document.getElementById('users-trend').textContent = '+5%';
+            document.getElementById('ideas-trend').textContent = '+12%';
+            document.getElementById('scripts-trend').textContent = '+8%';
+            document.getElementById('premium-trend').textContent = '+15%';
+
+            // Atualizar email do admin
+            const userResponse = await makeAuthenticatedRequest('/api/auth/me');
+            if (userResponse.ok) {
+                const userData = await userResponse.json();
+                document.getElementById('admin-email').textContent = userData.user.email;
+            }
+
+            // Renderizar gráficos
+            renderCharts(dashboard);
+        }
+    } catch (error) {
+        console.error('Erro ao carregar dados do dashboard:', error);
     }
 }
