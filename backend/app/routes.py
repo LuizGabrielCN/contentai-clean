@@ -221,8 +221,11 @@ def forgot_password():
         # Enviar email
         mail = current_app.extensions.get('mail')
         if mail:
-            # A URL do frontend deve ser configurável
-            frontend_url = os.environ.get('FRONTEND_URL', 'http://127.0.0.1:8000')
+            # A URL do frontend DEVE ser configurada via variável de ambiente
+            frontend_url = os.environ.get('FRONTEND_URL')
+            if not frontend_url:
+                print("⚠️  AVISO: FRONTEND_URL não está definida. O link de reset de senha pode não funcionar.")
+                return jsonify({"error": "Configuração do servidor incompleta."}), 500
             reset_url = f"{frontend_url}/reset-password.html?token={reset_token}"
             
             msg = Message(

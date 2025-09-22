@@ -55,7 +55,11 @@ def create_app():
     socketio.init_app(app)
 
     # ✅ Configuração do Banco de Dados
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:RiTbpZhNlEeGlXhbtXuigVwhgTGmtefy@turntable.proxy.rlwy.net:33008/railway')
+    database_url = os.environ.get('DATABASE_URL')
+    if not database_url:
+        raise RuntimeError("FATAL: A variável de ambiente DATABASE_URL não está configurada.")
+    
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     if app.config['SQLALCHEMY_DATABASE_URI'].startswith('postgresql'):

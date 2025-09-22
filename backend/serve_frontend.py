@@ -12,7 +12,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FRONTEND_FOLDER = os.path.join(BASE_DIR, 'frontend')
 
 # ✅ Criar app usando a factory
-app = create_app()
+app, socketio = create_app()
 
 # ✅ Frontend routes (apenas estas rotas aqui)
 @app.route('/')
@@ -32,4 +32,4 @@ if __name__ == '__main__':
     print("🔧 API Health: http://localhost:5000/api/health")
     print("🗄️  Banco: sqlite:///contentai.db")
     print("📊 Usando rotas com persistência no banco")
-    app.run(host='0.0.0.0', port=port, debug=False)
+    socketio.run(app, host='0.0.0.0', port=port, debug=False)

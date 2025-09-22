@@ -7,9 +7,11 @@ from app.services.ai_service import AIService
 def test_full_integration():
     print("🧪 Teste de Integração Completa")
     
-    # Configurar API key
-    os.environ['GEMINI_API_KEY'] = 'AIzaSyD2EOHzEOQZjA6SzpdX5mT_JRYyhiIlIi4'
-    
+    # Carregar API key do ambiente
+    if not os.environ.get('GEMINI_API_KEY'):
+        print("❌ Variável de ambiente GEMINI_API_KEY não definida. Teste abortado.")
+        return
+
     ai_service = AIService()
     
     print(f"🔧 Modo Fallback: {ai_service.fallback_mode}")

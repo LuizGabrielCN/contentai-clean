@@ -9,7 +9,10 @@ def test_models():
     """Testa quais modelos estão disponíveis"""
     print("🔍 Verificando modelos disponíveis...")
     
-    api_key = "AIzaSyD2EOHzEOQZjA6SzpdX5mT_JRYyhiIlIi4"
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        print("❌ Variável de ambiente GEMINI_API_KEY não definida. Teste abortado.")
+        return
     genai.configure(api_key=api_key)
     
     try:
@@ -23,9 +26,6 @@ def test_models():
 
 def test_gemini():
     print("🧪 Testando integração com Gemini...")
-    
-    # Configurar a API key manualmente para teste
-    os.environ['GEMINI_API_KEY'] = 'AIzaSyD2EOHzEOQZjA6SzpdX5mT_JRYyhiIlIi4'
     
     ai_service = AIService()
     

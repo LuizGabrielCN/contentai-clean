@@ -13,3 +13,4 @@ psycopg2-binary==2.9.9
 flask-socketio==5.3.6
 python-socketio==5.8.0
 flask-mail==0.9.1
+eventlet==0.33.3

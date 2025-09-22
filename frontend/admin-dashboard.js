@@ -217,11 +217,14 @@ function showEditUserModal(user) {
 }
 
 async function updateUser(userId) {
+    // Se os dados não forem passados, pega do formulário de edição
     const formData = {
-        name: document.getElementById('edit-user-name').value,
-        is_premium: document.getElementById('edit-user-premium').checked,
-        is_admin: document.getElementById('edit-user-admin').checked
+        name: document.getElementById('edit-user-name')?.value,
+        is_premium: document.getElementById('edit-user-premium')?.checked,
+        is_admin: document.getElementById('edit-user-admin')?.checked
     };
+
+    // O evento onsubmit já previne o comportamento padrão com "return false"
     
     try {
         const response = await makeAuthenticatedRequest(`/admin/user/${userId}`, {
@@ -231,7 +234,10 @@ async function updateUser(userId) {
         
         if (response.ok) {
             showToast('Usuário atualizado com sucesso!', 'success');
-            document.getElementById('user-edit-modal').style.display = 'none';
+            const modal = document.getElementById('user-edit-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
             loadUsers();
         }
     } catch (error) {
@@ -316,10 +322,9 @@ function renderUsersTable(users) {
             <td>${new Date(user.created_at).toLocaleDateString('pt-BR')}</td>
             <td>
                 <button onclick="editUser(${user.id})" class="btn-sm btn-outline">Editar</button>
-                <button onclick="toggleUserPremium(${user.id}, ${!user.is_premium})"
-                        class="btn-sm ${user.is_premium ? 'btn-warning' : 'btn-success'}">
+                <button onclick="applyUserAction(${user.id}, { is_premium: ${!user.is_premium} })" class="btn-sm ${user.is_premium ? 'btn-warning' : 'btn-success'}">
                     ${user.is_premium ? 'Remover Premium' : 'Tornar Premium'}
-                </button>
+                </button> 
                 <button onclick="confirmDeleteUser(${user.id}, '${user.email}')" class="btn-sm btn-danger">Excluir</button>
             </td>
         `;
@@ -447,41 +452,5 @@ function renderCharts(dashboard) {
         plansChart.update();
     } else {
         plansChart = new Chart(plansCtx, planDistributionConfig);
-    }
-}
-
-// Atualizar loadDashboardData para chamar renderCharts
-async function loadDashboardData() {
-    try {
-        const response = await makeAuthenticatedRequest('/api/admin/dashboard');
-        if (response.ok) {
-            const data = await response.json();
-            const dashboard = data.dashboard;
-
-            // Atualizar estatísticas
-            document.getElementById('total-users').textContent = dashboard.users.total;
-            document.getElementById('total-ideas').textContent = dashboard.content.ideas_generated;
-            document.getElementById('total-scripts').textContent = dashboard.content.scripts_generated;
-            document.getElementById('premium-users').textContent = dashboard.users.premium;
-
-            // Calcular tendências (simples, baseado em dados atuais)
-            // Aqui você pode implementar lógica para calcular tendências reais
-            document.getElementById('users-trend').textContent = '+5%';
-            document.getElementById('ideas-trend').textContent = '+12%';
-            document.getElementById('scripts-trend').textContent = '+8%';
-            document.getElementById('premium-trend').textContent = '+15%';
-
-            // Atualizar email do admin
-            const userResponse = await makeAuthenticatedRequest('/api/auth/me');
-            if (userResponse.ok) {
-                const userData = await userResponse.json();
-                document.getElementById('admin-email').textContent = userData.user.email;
-            }
-
-            // Renderizar gráficos
-            renderCharts(dashboard);
-        }
-    } catch (error) {
-        console.error('Erro ao carregar dados do dashboard:', error);
     }
 }
