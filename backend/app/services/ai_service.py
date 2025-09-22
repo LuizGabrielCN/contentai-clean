@@ -1,6 +1,7 @@
 import os
 import google.generativeai as genai
 from typing import List, Dict
+from google.api_core import exceptions as google_exceptions
 import logging
 
 class AIService:
@@ -18,7 +19,11 @@ class AIService:
                 self.model = genai.GenerativeModel('models/gemini-1.5-flash-latest')
                 logging.info("✅ Gemini 1.5 Flash configurado com sucesso!")
                 self.fallback_mode = False
-            except Exception as e:
+            # ✅ Captura erro de autenticação se a API key for inválida
+            except google_exceptions.PermissionDenied as e:
+                logging.error(f"❌ ERRO DE AUTENTICAÇÃO: A API Key do Gemini é inválida ou não tem permissão. Verifique sua chave. Erro: {e}")
+                self.fallback_mode = True
+            except Exception as e: # Outros erros
                 logging.warning(f"❌ Erro ao configurar modelo: {e}")
                 self.fallback_mode = True
 
@@ -30,18 +35,19 @@ class AIService:
         
         try:
             prompt = f"""
-            Gere {count} ideias criativas de conteúdo para redes sociais (TikTok, Instagram Reels, YouTube Shorts).
+            Você é um especialista em conteúdo viral para redes sociais.
+            Gere uma lista de {count} ideias de conteúdo para TikTok, Instagram Reels e YouTube Shorts.
             
             NICHÊ: {niche}
             PÚBLICO-ALVO: {audience}
             
-            Para cada ideia, retorne APENAS um JSON object com:
+            Para cada ideia, forneça:
             - title: título criativo (máx. 60 caracteres)
             - description: descrição detalhada (máx. 150 caracteres)  
             - hashtags: 4-5 hashtags relevantes
 
-            Formato de resposta:
-            [
+            Sua resposta deve ser APENAS um array JSON válido, sem nenhum texto adicional, markdown ou explicação. O formato deve ser:
+            [ 
                 {{
                     "title": "Título da ideia 1",
                     "description": "Descrição detalhada...",
@@ -49,13 +55,11 @@ class AIService:
                 }},
                 ...
             ]
-
-            Seja criativo, viral e adequado para o público {audience} interessado em {niche}.
             """
             
             response = self.model.generate_content(prompt)
             ideas = self._parse_ai_response(response.text)
-            
+
             return ideas[:count]
             
         except Exception as e:
@@ -68,6 +72,7 @@ class AIService:
         if self.fallback_mode:
             return self._get_fallback_script(idea)
         
+        # ✅ Importar exceções específicas da biblioteca
         try:
             prompt = f"""
             Crie um roteiro COMPLETO e DETALHADO para um vídeo de 20-25 segundos para redes sociais.
@@ -99,8 +104,12 @@ class AIService:
             
             response = self.model.generate_content(prompt)
             return response.text
-            
-        except Exception as e:
+
+        # ✅ Capturar erros específicos da API do Google
+        except (google_exceptions.InternalServerError, google_exceptions.ResourceExhausted, ValueError) as e:
+            logging.warning(f"Erro na API Gemini ao gerar roteiro (usando fallback): {str(e)}")
+            return self._get_fallback_script(idea)
+        except Exception as e: # Captura outras exceções inesperadas
             logging.error(f"Erro ao gerar roteiro: {str(e)}")
             return self._get_fallback_script(idea)
 
@@ -111,15 +120,17 @@ class AIService:
         
         try:
             # Tenta encontrar JSON na resposta
-            json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
+            # Remove ```json e ``` do início e fim, se houver
+            cleaned_text = re.sub(r'^```json\s*|\s*```$', '', response_text.strip(), flags=re.DOTALL)
+            json_match = re.search(r'\[.*\]', cleaned_text, re.DOTALL)
             if json_match:
                 ideas = json.loads(json_match.group())
                 return ideas
             else:
                 raise ValueError("JSON não encontrado na resposta")
-        except:
-            # Fallback se o parsing falhar
-            return self._get_fallback_ideas("humor", "jovens", 3)
+        except (json.JSONDecodeError, ValueError) as e:
+            logging.error(f"Falha ao parsear resposta da IA: {e}\nResposta recebida: {response_text}")
+            return [] # Retorna lista vazia em caso de falha no parsing
 
     def _get_fallback_ideas(self, niche: str, audience: str, count: int) -> List[Dict]:
         """Ideias de fallback quando a API não está disponível"""

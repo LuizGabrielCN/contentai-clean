@@ -684,7 +684,83 @@ async function generateScript() {
     }
 }
 
-// ... (o restante das funções permanecem iguais: displayIdeas, displayScript, useIdeaForScript, etc.)
+// ======================
+// FUNÇÕES DE DISPLAY
+// ======================
+
+/**
+ * ✅ FUNÇÃO REATORADA PARA MELHORAR A UI E A SEGURANÇA
+ * Exibe as ideias geradas em cards com um design aprimorado.
+ * - Cria elementos via DOM API para mais segurança e flexibilidade.
+ * - Estiliza hashtags como "pills" individuais.
+ * - Padroniza o botão "Usar para Roteiro".
+ * - Adiciona event listeners de forma programática.
+ */
+function displayIdeas(ideas) {
+    const ideasGrid = document.getElementById('ideas-grid');
+    const ideasResults = document.getElementById('ideas-results');
+    
+    if (!ideasGrid || !ideasResults) {
+        console.error("Elementos de resultado de ideias não encontrados.");
+        return;
+    }
+    
+    ideasGrid.innerHTML = ''; // Limpa resultados anteriores
+    
+    if (!ideas || ideas.length === 0) {
+        ideasResults.style.display = 'none';
+        return;
+    }
+    
+    ideas.forEach(idea => {
+        const card = document.createElement('div');
+        card.className = 'idea-card';
+        
+        // Título
+        const title = document.createElement('h5');
+        title.textContent = `💡 ${idea.title}`;
+        
+        // Descrição
+        const description = document.createElement('p');
+        description.textContent = idea.description;
+        
+        // Container de Hashtags
+        const hashtagsContainer = document.createElement('div');
+        hashtagsContainer.className = 'hashtags';
+        if (idea.hashtags) {
+            idea.hashtags.split(' ').filter(h => h.startsWith('#')).forEach(tag => {
+                const hashtag = document.createElement('span');
+                hashtag.className = 'hashtag-pill';
+                hashtag.textContent = tag;
+                hashtagsContainer.appendChild(hashtag);
+            });
+        }
+        
+        // Botão "Usar para Roteiro"
+        const useButton = document.createElement('button');
+        useButton.textContent = 'Usar para Roteiro';
+        useButton.className = 'btn btn-secondary use-idea-btn'; // ✅ Classe padronizada
+        useButton.addEventListener('click', () => useIdeaForScript(idea.title)); // ✅ Evento seguro
+        
+        card.append(title, description, hashtagsContainer, useButton);
+        ideasGrid.appendChild(card);
+    });
+
+    ideasResults.style.display = 'block';
+}
+
+function displayScript(script) {
+    const scriptOutput = document.getElementById('script-output');
+    const scriptResult = document.getElementById('script-result');
+
+    if (!scriptOutput || !scriptResult) {
+        console.error("Elementos de resultado de roteiro não encontrados.");
+        return;
+    }
+
+    scriptOutput.textContent = script;
+    scriptResult.style.display = 'block';
+}
 
 // ======================
 // FUNÇÕES DE TRACKING

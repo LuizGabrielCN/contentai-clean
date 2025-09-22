@@ -22,19 +22,18 @@
                 <h1>HelpubliAI Admin</h1>
             </div>
             <nav class="nav">
-                <a href="#dashboard" class="nav-link active">Dashboard</a>
+                <a href="#overview" class="nav-link active">Visão Geral</a>
                 <a href="#users" class="nav-link">Usuários</a>
                 <a href="#content" class="nav-link">Conteúdo</a>
                 <a href="#analytics" class="nav-link">Analytics</a>
             </nav>
-            <div class="user-section">
+            <div class="user-section" id="user-section" style="display: flex;">
                 <div class="user-info">
                     <span id="admin-email"></span>
                     <span class="plan-badge admin">Admin</span>
                 </div>
-                <!-- ✅ Botão para voltar à plataforma principal -->
-                <a href="/" class="btn btn-secondary">Voltar à Plataforma</a>
-                <button onclick="logout()" class="btn btn-outline">Sair</button>
+                <a href="/" class="btn btn-outline">Plataforma</a>
+                <button id="logout-btn" class="btn btn-outline">Sair</button>
             </div>
         </div>
     </header>
@@ -42,10 +41,10 @@
     <!-- Main Content -->
     <main class="main">
         <div class="container">
-            <!-- Dashboard Tab -->
-            <section id="dashboard" class="tab-content active">
+            <!-- Overview Tab -->
+            <section id="overview" class="tab-content active">
                 <div class="welcome-section">
-                    <h2>📊 Dashboard Administrativo</h2>
+                    <h2>📊 Visão Geral</h2>
                     <p>Gerencie sua plataforma HelpubliAI</p>
                 </div>
 
@@ -73,77 +72,21 @@
                     </div>
                 </div>
 
-                <!-- Charts -->
-                <div class="charts-grid">
-                    <div class="chart-card">
-                        <h3>📈 Crescimento de Usuários</h3>
-                        <canvas id="users-chart"></canvas>
-                    </div>
-                    <div class="chart-card">
-                        <h3>🎯 Distribuição de Planos</h3>
-                        <canvas id="plans-chart"></canvas>
-                    </div>
-                </div>
-            </section>
-
-            <div class="admin-grid">
-                <!-- Gestão de Usuários -->
-                <div class="admin-card">
-                    <h3>👥 Gestão de Usuários</h3>
-                    <div class="user-management">
-                        <div class="search-box">
-                            <input type="text" id="user-search" placeholder="🔍 Buscar usuários...">
-                            <select id="user-filter">
-                                <option value="all">Todos</option>
-                                <option value="premium">Premium</option>
-                                <option value="free">Free</option>
-                                <option value="admin">Administradores</option>
-                            </select>
-                        </div>
-                        <div class="users-table-container">
-                            <table class="users-table">
-                                <thead>
-                                    <tr>
-                                        <th><input type="checkbox" id="select-all"></th>
-                                        <th>ID</th>
-                                        <th>Email</th>
-                                        <th>Nome</th>
-                                        <th>Plano</th>
-                                        <th>Admin</th>
-                                        <th>Criado em</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="users-table-body">
-                                    <!-- Dynamic content -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="bulk-actions">
-                            <select id="bulk-action">
-                                <option value="">Ações em massa</option>
-                                <option value="make_premium">Tornar Premium</option>
-                                <option value="remove_premium">Remover Premium</option>
-                                <option value="make_admin">Tornar Admin</option>
-                                <option value="remove_admin">Remover Admin</option>
-                            </select>
-                            <button onclick="applyBulkAction()" class="btn btn-primary">Aplicar</button>
+                <!-- Estatísticas em Tempo Real -->
+                <div class="card">
+                    <h3>📈 Estatísticas em Tempo Real</h3>
+                    <div class="real-time-stats">
+                        <div class="stat-row">
+                            <div class="stat-item">
+                                <span class="stat-label">Usuários Online</span>
+                                <span class="stat-value" id="online-users">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Gerações/Minuto</span>
+                                <span class="stat-value" id="generations-minute">0</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-    <!-- Estatísticas em Tempo Real -->
-    <div class="admin-card">
-        <h3>📈 Estatísticas em Tempo Real</h3>
-        <div class="real-time-stats">
-            <div class="stat-row">
-                <div class="stat-item">
-                    <span class="stat-label">Usuários Online</span>
-                    <span class="stat-value" id="online-users">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Gerações/Minuto</span>
-                    <span class="stat-value" id="generations-minute">0</span>
                 </div>
             </div>
             <div class="stat-charts">
@@ -151,18 +94,6 @@
             </div>
         </div>
     </div>
-</div>
-
-<!-- Modal de Edição de Usuário -->
-<div id="user-edit-modal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3>✏️ Editar Usuário</h3>
-        <div id="user-edit-form">
-            <!-- Form will be loaded here -->
-        </div>
-    </div>
-</div>
 
             <!-- Users Management Tab -->
             <section id="users" class="tab-content">
@@ -170,14 +101,32 @@
                     <h3>👥 Gerenciamento de Usuários</h3>
                     
                     <div class="admin-actions">
-                        <input type="text" id="user-search" placeholder="🔍 Buscar usuários..." class="form-group">
-                        <button onclick="loadUsers()" class="btn btn-primary">Atualizar</button>
+                        <input type="text" id="user-search" placeholder="🔍 Buscar por email ou nome..." class="form-group">
+                        <select id="user-filter">
+                            <option value="all">Todos os Planos</option>
+                            <option value="premium">Premium</option>
+                            <option value="free">Free</option>
+                            <option value="admin">Administradores</option>
+                        </select>
+                        <button id="refresh-users-btn" class="btn btn-secondary">Atualizar</button>
+                    </div>
+
+                    <div class="bulk-actions">
+                        <select id="bulk-action">
+                            <option value="">Ações em massa...</option>
+                            <option value="make_premium">Tornar Premium</option>
+                            <option value="remove_premium">Remover Premium</option>
+                            <option value="make_admin">Tornar Admin</option>
+                            <option value="remove_admin">Remover Admin</option>
+                        </select>
+                        <button id="apply-bulk-action-btn" class="btn btn-primary">Aplicar</button>
                     </div>
 
                     <div class="users-table-container">
                         <table class="users-table">
                             <thead>
                                 <tr>
+                                    <th><input type="checkbox" id="select-all-users"></th>
                                     <th>ID</th>
                                     <th>Email</th>
                                     <th>Nome</th>
@@ -198,16 +147,26 @@
             <!-- Content Management Tab -->
             <section id="content" class="tab-content">
                 <div class="card">
-                    <h3>📊 Conteúdo Gerado</h3>
-                    <div class="content-stats">
-                        <div class="stat-item">
-                            <span>Total de Gerações:</span>
-                            <span id="total-generations">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span>Gerações Hoje:</span>
-                            <span id="today-generations">0</span>
-                        </div>
+                    <h3>📜 Histórico de Conteúdo Gerado</h3>
+                    <div class="users-table-container">
+                        <table class="users-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Usuário</th>
+                                    <th>Tipo</th>
+                                    <th>Conteúdo</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="content-history-body">
+                                <!-- Histórico será carregado aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Paginação para o histórico de conteúdo -->
+                    <div class="pagination" id="content-pagination">
+                        <!-- Controles de paginação serão inseridos aqui -->
                     </div>
                 </div>
             </section>
@@ -216,11 +175,31 @@
             <section id="analytics" class="tab-content">
                 <div class="card">
                     <h3>📈 Analytics Detalhados</h3>
-                    <p>Em desenvolvimento...</p>
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h3>📈 Crescimento de Usuários</h3>
+                            <canvas id="users-chart"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <h3>🎯 Distribuição de Planos</h3>
+                            <canvas id="plans-chart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
     </main>
+
+    <!-- Modal de Edição de Usuário -->
+    <div id="user-edit-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3>✏️ Editar Usuário</h3>
+            <div id="user-edit-form">
+                <!-- Form will be loaded here -->
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Notifications -->
     <div id="toast" class="toast"></div>

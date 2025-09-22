@@ -2,7 +2,7 @@ from app import create_app
 from app.models import User
 
 def check_users():
-    app = create_app()
+    app, _ = create_app()
     
     with app.app_context():
         users = User.query.all()

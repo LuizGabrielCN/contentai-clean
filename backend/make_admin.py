@@ -2,7 +2,7 @@ from app import create_app
 from app.models import User, db
 
 def make_admin(email):
-    app = create_app()
+    app, _ = create_app()
     
     with app.app_context():
         user = User.query.filter_by(email=email).first()
@@ -12,9 +12,10 @@ def make_admin(email):
             return False
         
         user.is_admin = True
+        user.is_premium = True
         db.session.commit()
         
-        print(f"✅ {user.email} agora é ADMINISTRADOR!")
+        print(f"✅ {user.email} agora é ADMINISTRADOR e PREMIUM!")
         print(f"   👤 Nome: {user.name}")
         print(f"   📧 Email: {user.email}") 
         print(f"   👑 Admin: {user.is_admin}")

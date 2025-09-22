@@ -243,8 +243,16 @@ body {
 }
 
 .btn-secondary {
-    background: var(--success);
-    color: white;
+    /* ✅ Refinamento para um estilo mais padronizado e sutil */
+    background: rgba(67, 97, 238, 0.1); /* Fundo azul claro, semi-transparente */
+    color: var(--primary); /* Texto na cor primária */
+    border: 2px solid transparent; /* Borda invisível para manter o tamanho */
+}
+
+.btn-secondary:hover {
+    background: rgba(67, 97, 238, 0.2); /* Fundo um pouco mais escuro no hover */
+    border-color: rgba(67, 97, 238, 0.3); /* Borda sutil aparece no hover */
+    color: var(--primary-dark); /* Texto fica mais escuro */
 }
 
 .btn-outline {

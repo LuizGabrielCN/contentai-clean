@@ -4,7 +4,7 @@ from app.models import db, GenerationHistory, AppStatistics
 def check_database():
     print("🔍 Verificando banco de dados...")
     
-    app = create_app()
+    app, _ = create_app()
     
     with app.app_context():
         print("📊 Estatísticas do banco:")

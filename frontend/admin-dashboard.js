@@ -72,7 +72,9 @@ async function loadFullDashboard() {
     try {
         await loadDashboardData();
         await loadUsers();
+        await loadContentHistory(); // ✅ Carrega o histórico de conteúdo
         await loadRealTimeStats();
+        renderCharts(realTimeData); // ✅ Renderiza os gráficos com os dados disponíveis
         startRealTimeUpdates();
 
         // Esconder tela de carregamento
@@ -99,6 +101,41 @@ async function loadRealTimeStats() {
 function updateRealTimeUI() {
     document.getElementById('online-users').textContent = realTimeData.onlineUsers;
     document.getElementById('generations-minute').textContent = realTimeData.generationsPerMinute;
+}
+
+/**
+ * ✅ Configura a navegação por abas no painel de administração.
+ */
+function setupTabs() {
+    const navLinks = document.querySelectorAll('.header .nav-link');
+    const sections = document.querySelectorAll('main .tab-content');
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute('href').substring(1);
+
+            // Atualiza classe 'active' nos links de navegação
+            navLinks.forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+
+            // Mostra a seção/aba correta
+            sections.forEach(s => {
+                if (s.id === targetId) {
+                    s.classList.add('active');
+                } else {
+                    s.classList.remove('active');
+                }
+            });
+
+            // ✅ Carrega dados específicos da aba quando ela é ativada
+            if (targetId === 'content') {
+                loadContentHistory();
+            } else if (targetId === 'analytics') {
+                renderCharts(realTimeData); // Renderiza gráficos ao abrir a aba
+            }
+        });
+    });
 }
 
 function startRealTimeUpdates() {
@@ -162,7 +199,7 @@ function filterUsers() {
     
     // Aplicar busca
     if (searchTerm) {
-        filtered = filtered.filter(u => 
+        filtered = filtered.filter(u =>
             u.email.toLowerCase().includes(searchTerm) ||
             (u.name && u.name.toLowerCase().includes(searchTerm))
         );
@@ -188,7 +225,7 @@ function showEditUserModal(user) {
     const formDiv = document.getElementById('user-edit-form');
     
     formDiv.innerHTML = `
-        <form onsubmit="updateUser(${user.id}); return false;">
+        <form id="edit-form">
             <div class="form-group">
                 <label>Email:</label>
                 <input type="email" value="${user.email}" disabled>
@@ -214,17 +251,25 @@ function showEditUserModal(user) {
     `;
     
     modal.style.display = 'block';
+
+    // Adicionar event listener para o formulário
+    document.getElementById('edit-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        updateUser(user.id);
+    });
+
+    // Fechar modal
+    modal.querySelector('.close').addEventListener('click', () => {
+        modal.style.display = 'none';
+    });
 }
 
 async function updateUser(userId) {
-    // Se os dados não forem passados, pega do formulário de edição
     const formData = {
         name: document.getElementById('edit-user-name')?.value,
         is_premium: document.getElementById('edit-user-premium')?.checked,
         is_admin: document.getElementById('edit-user-admin')?.checked
     };
-
-    // O evento onsubmit já previne o comportamento padrão com "return false"
     
     try {
         const response = await makeAuthenticatedRequest(`/admin/user/${userId}`, {
@@ -239,6 +284,8 @@ async function updateUser(userId) {
                 modal.style.display = 'none';
             }
             loadUsers();
+        } else {
+            throw new Error('Falha ao atualizar usuário');
         }
     } catch (error) {
         showToast('Erro ao atualizar usuário', 'error');
@@ -246,7 +293,7 @@ async function updateUser(userId) {
 }
 
 // Ações em Massa
-function applyBulkAction() {
+async function applyBulkAction() {
     const action = document.getElementById('bulk-action').value;
     const selectedUsers = getSelectedUsers();
     
@@ -262,9 +309,18 @@ function applyBulkAction() {
         'remove_admin': { is_admin: false }
     };
     
-    selectedUsers.forEach(userId => {
-        applyUserAction(userId, actions[action]);
-    });
+    const promises = selectedUsers.map(userId => applyUserAction(userId, actions[action]));
+
+    try {
+        await Promise.all(promises);
+        showToast('Ações em massa aplicadas com sucesso!', 'success');
+    } catch (error) {
+        showToast('Ocorreu um erro ao aplicar ações em massa.', 'error');
+    } finally {
+        // Recarrega a lista de usuários para refletir as mudanças
+        loadUsers();
+        document.getElementById('select-all-users').checked = false;
+    }
 }
 
 function getSelectedUsers() {
@@ -322,9 +378,6 @@ function renderUsersTable(users) {
             <td>${new Date(user.created_at).toLocaleDateString('pt-BR')}</td>
             <td>
                 <button onclick="editUser(${user.id})" class="btn-sm btn-outline">Editar</button>
-                <button onclick="applyUserAction(${user.id}, { is_premium: ${!user.is_premium} })" class="btn-sm ${user.is_premium ? 'btn-warning' : 'btn-success'}">
-                    ${user.is_premium ? 'Remover Premium' : 'Tornar Premium'}
-                </button> 
                 <button onclick="confirmDeleteUser(${user.id}, '${user.email}')" class="btn-sm btn-danger">Excluir</button>
             </td>
         `;
@@ -336,6 +389,27 @@ function renderUsersTable(users) {
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     loadFullDashboard();
+    setupTabs(); // ✅ Configura a navegação por abas
+
+    // ✅ Conecta o botão de logout
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
+
+    // ✅ Conecta filtros e busca de usuários
+    document.getElementById('user-search').addEventListener('input', filterUsers);
+    document.getElementById('user-filter').addEventListener('change', filterUsers);
+    document.getElementById('refresh-users-btn').addEventListener('click', loadUsers);
+
+    // ✅ Conecta ações em massa
+    document.getElementById('apply-bulk-action-btn').addEventListener('click', applyBulkAction);
+
+    // ✅ Conecta o checkbox "selecionar todos"
+    document.getElementById('select-all-users').addEventListener('change', (e) => {
+        const isChecked = e.target.checked;
+        document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+            checkbox.checked = isChecked;
+        });
+    });
 });
 
 // Função de logout
@@ -371,11 +445,79 @@ async function deleteUser(userId) {
     }
 }
 
+// ==================================
+// ✅ GESTÃO DE CONTEÚDO
+// ==================================
+
+async function loadContentHistory(page = 1) {
+    try {
+        const response = await makeAuthenticatedRequest(`/admin/content/history?page=${page}&per_page=15`);
+        if (response.ok) {
+            const data = await response.json();
+            renderContentHistory(data.history);
+            renderContentPagination(data);
+        } else {
+            showToast('Erro ao carregar histórico de conteúdo', 'error');
+        }
+    } catch (error) {
+        console.error('Erro ao carregar histórico de conteúdo:', error);
+    }
+}
+
+function renderContentHistory(history) {
+    const tbody = document.getElementById('content-history-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    if (history.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum conteúdo gerado ainda.</td></tr>';
+        return;
+    }
+
+    history.forEach(item => {
+        const row = document.createElement('tr');
+        const data = JSON.parse(item.data);
+        let contentPreview = '';
+
+        if (item.type === 'ideas') {
+            contentPreview = `<strong>Nicho:</strong> ${data.niche} <br> <strong>Ideia:</strong> ${data.ideas[0]?.title || 'N/A'}`;
+        } else if (item.type === 'script') {
+            contentPreview = `<strong>Ideia:</strong> ${data.idea.substring(0, 80)}...`;
+        }
+
+        row.innerHTML = `
+            <td>${item.id}</td>
+            <td>${item.user_email}</td>
+            <td><span class="status-badge ${item.type === 'ideas' ? 'info' : 'success'}">${item.type}</span></td>
+            <td class="content-preview">${contentPreview}</td>
+            <td>${new Date(item.created_at).toLocaleString('pt-BR')}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function renderContentPagination(data) {
+    const paginationContainer = document.getElementById('content-pagination');
+    if (!paginationContainer) return;
+    paginationContainer.innerHTML = '';
+
+    if (data.pages <= 1) return;
+
+    for (let i = 1; i <= data.pages; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        pageButton.className = 'btn-sm ' + (i === data.current_page ? 'btn-primary' : 'btn-outline');
+        pageButton.onclick = () => loadContentHistory(i);
+        paginationContainer.appendChild(pageButton);
+    }
+}
+
+
 // Função para renderizar gráficos com Chart.js
 let usersChart = null;
 let plansChart = null;
 
-function renderCharts(dashboard) {
+function renderCharts(dashboard = { users: { total: 0, premium: 0 } }) {
     // Dados para gráfico de crescimento de usuários (exemplo simples)
     const userGrowthData = {
         labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul'],

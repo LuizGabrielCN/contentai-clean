@@ -224,8 +224,9 @@ def forgot_password():
             # A URL do frontend DEVE ser configurada via variável de ambiente
             frontend_url = os.environ.get('FRONTEND_URL')
             if not frontend_url:
-                print("⚠️  AVISO: FRONTEND_URL não está definida. O link de reset de senha pode não funcionar.")
-                return jsonify({"error": "Configuração do servidor incompleta."}), 500
+                current_app.logger.error("FATAL: FRONTEND_URL não está definida. O email de reset de senha não pode ser enviado.")
+                # Retorna sucesso para o usuário para não expor erro de configuração, mas o email não será enviado.
+                return jsonify({"status": "success", "message": "Se o email estiver cadastrado, você receberá instruções."}), 200
             reset_url = f"{frontend_url}/reset-password.html?token={reset_token}"
             
             msg = Message(
@@ -299,7 +300,13 @@ def reset_password():
 @jwt_required()
 def get_current_user():
     try:
-        user_id = int(get_jwt_identity())
+        user_identity = get_jwt_identity()
+        if user_identity is None:
+            return jsonify({"error": "Token inválido ou ausente"}), 401
+        try:
+            user_id = int(user_identity)
+        except (ValueError, TypeError):
+            return jsonify({"error": "Identidade do usuário inválida no token"}), 422
         user = User.query.get(user_id)
         
         if not user:
@@ -359,6 +366,21 @@ def health_check():
         }
     })
 
+def _build_generation_response(history_entry, user_id, **kwargs):
+    """Constrói a resposta JSON padrão para rotas de geração."""
+    user = User.query.get(user_id) if user_id else None
+    is_premium = user.is_premium if user else False
+
+    response_data = {
+        "status": "success",
+        "ai_generated": not ai_service.fallback_mode,
+        "history_id": history_entry.id,
+        "user_id": user_id,
+        "is_premium": is_premium
+    }
+    response_data.update(kwargs)
+    return jsonify(response_data)
+
 def update_statistics(generation_type):
     """Atualiza estatísticas da aplicação"""
     stats = AppStatistics.query.first()
@@ -401,6 +423,11 @@ def generate_ideas():
         # ✅ USANDO CACHE
         ideas = generate_ideas_cached(niche, audience, count)
         
+        # ✅ Se a IA falhou e retornou uma lista vazia, usar fallback
+        if not ideas:
+            current_app.logger.warning("A geração de ideias retornou uma lista vazia. Usando fallback.")
+            ideas = ai_service._get_fallback_ideas(niche, audience, count)
+
         # ✅ Salvar no banco de dados
         history_entry = GenerationHistory(
             type='ideas',
@@ -416,20 +443,16 @@ def generate_ideas():
         update_statistics('ideas')
         db.session.commit()
         
-        return jsonify({
-            "niche": niche,
-            "audience": audience,
-            "count": len(ideas),
-            "ideas": ideas,
-            "status": "success",
-            "ai_generated": not ai_service.fallback_mode,
-            "history_id": history_entry.id,
-            "user_id": user_id,
-            "is_premium": False if not user_id else User.query.get(user_id).is_premium
-        })
+        return _build_generation_response(history_entry, user_id,
+            niche=niche,
+            audience=audience,
+            count=len(ideas),
+            ideas=ideas
+        )
         
     except Exception as e:
-        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+        current_app.logger.error(f"Erro inesperado ao gerar ideias: {e}", exc_info=True)
+        return jsonify({"error": "Ocorreu um erro inesperado ao gerar as ideias. Tente novamente."}), 500
 
 @main_bp.route('/api/generate-script', methods=['POST'])
 @jwt_required(optional=True)
@@ -468,18 +491,14 @@ def generate_script():
         update_statistics('script')
         db.session.commit()
         
-        return jsonify({
-            "idea": idea,
-            "script": script,
-            "status": "success",
-            "ai_generated": not ai_service.fallback_mode,
-            "history_id": history_entry.id,
-            "user_id": user_id,
-            "is_premium": False if not user_id else User.query.get(user_id).is_premium
-        })
+        return _build_generation_response(history_entry, user_id,
+            idea=idea,
+            script=script
+        )
         
     except Exception as e:
-        return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+        current_app.logger.error(f"Erro inesperado ao gerar roteiro: {e}", exc_info=True)
+        return jsonify({"error": "Ocorreu um erro inesperado ao gerar o roteiro. Tente novamente."}), 500
 
 @main_bp.route('/api/user/history', methods=['GET'])
 @jwt_required()
@@ -744,6 +763,49 @@ def get_user(user_id):
         
     except Exception as e:
         return jsonify({"error": f"Erro interno: {str(e)}"}), 500
+
+@main_bp.route('/admin/content/history', methods=['GET'])
+@jwt_required()
+def get_all_content_history():
+    """Retorna todo o histórico de gerações para o admin, com paginação."""
+    try:
+        admin_id = int(get_jwt_identity())
+        admin = User.query.get(admin_id)
+
+        if not admin or not admin.is_admin:
+            return jsonify({"error": "Acesso não autorizado"}), 403
+
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 15, type=int)
+
+        # Query com join para obter o email do usuário
+        history_query = db.session.query(
+            GenerationHistory, User.email
+        ).outerjoin(
+            User, GenerationHistory.user_id == User.id
+        ).order_by(
+            GenerationHistory.created_at.desc()
+        )
+
+        paginated_history = history_query.paginate(page=page, per_page=per_page, error_out=False)
+
+        # Formatar a resposta
+        history_list = []
+        for history_item, user_email in paginated_history.items:
+            item_dict = history_item.to_dict()
+            item_dict['user_email'] = user_email or 'Anônimo'
+            history_list.append(item_dict)
+
+        return jsonify({
+            'history': history_list,
+            'total': paginated_history.total,
+            'pages': paginated_history.pages,
+            'current_page': page
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Erro ao buscar histórico de conteúdo: {e}", exc_info=True)
+        return jsonify({"error": "Erro interno ao buscar histórico"}), 500
 
 # ======================
 # WEB SOCKET EVENTS

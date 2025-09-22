@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from app import create_app
 from app.models import db, GenerationHistory, AppStatistics
 
-app = create_app()
+app, _ = create_app()
 
 with app.app_context():
     print("🧪 Testando banco de dados...")
